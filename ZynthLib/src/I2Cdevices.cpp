@@ -4,9 +4,11 @@
 // Creator:    markeby
 // Date:       9/4/2023
 //#######################################################################
+//host libraries
 #include <Arduino.h>
 #include <Wire.h>
 
+//ZynthLib
 #include "I2Cdevices.h"
 #include "ADS1115.h"
 #include "Debug.h"
@@ -32,25 +34,28 @@ static const char* LabelError = "I2C";
 
 //#######################################################################
 //#######################################################################
-I2C_INTERFACE_C::I2C_INTERFACE_C (I2C_CLUSTERS_T* pcluster, I2C_LOCATION_T* ploc) : _DebugI2C (false)
+    I2C_INTERFACE_C::I2C_INTERFACE_C ()
     {
-    I2C_LOCATION_T* zploc = ploc;
+    _DebugI2C         = false;
+    _CallbackAtoD     = nullptr;
+    _pBoard           = nullptr;
+    _AtoD_loopDevice  = 0;
+    }
 
-    _DebugI2C = false;
+void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
+    {
+    I2C_LOCATION_T* zploc = plocation;
 
     for ( _BoardCount = 0;  zploc->Port != -1;  _BoardCount++, zploc++ );
     if ( _BoardCount == 0 )     // if no device board specified
         return;
 
-    _CallbackAtoD     = nullptr;
-    _AtoD_loopDevice  = 0;
     _pBoard           = new I2C_BOARD_T[_BoardCount];
     _DeviceCount      = 0;
-    _pClusterList     = pcluster;
 
     for ( int z = 0;  z < _BoardCount;  z++ )
         {
-        I2C_LOCATION_T& loc = ploc[z];
+        I2C_LOCATION_T& loc = plocation[z];
         _pBoard[z].Board    = loc;
         _pBoard[z].Valid    = false;
         _DeviceCount       += loc.NumberDtoA;
@@ -380,13 +385,16 @@ void I2C_INTERFACE_C::Write857x (I2C_BOARD_T& board)
     }
 
 //#######################################################################
+//#######################################################################
 // return:  0 = all good
 //         -1 = Total failure
 //         +X = Some interface errors
-int I2C_INTERFACE_C::Begin ()
+int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location)
     {
     String  str;
     uint8_t err = 0;
+
+    BuildTables (p_location);
 
     if ( _BoardCount == 0 )
         return (-1);
@@ -397,15 +405,20 @@ int I2C_INTERFACE_C::Begin ()
     Wire.setClock (800000UL);       // clock for High-speed to Ultra-fast mode
 //    Wire.setClock (400000UL);     // clock for Fast mode
 
-    for ( I2C_CLUSTERS_T* pc = _pClusterList;  *pc != -1;  pc++ )
+    for ( int z = 0;  z < _BoardCount;  z++ )      // first, let's check the cluster expanders
         {
-        Wire.beginTransmission (0x70 + *pc);    // TCA9548A address
-        Wire.write (0);                        // send byte to select bus
-        _LastEndT = Wire.endTransmission();
-        if ( _LastEndT )
-            DBGMUX ("Return for cluster %d is %s", *pc, ErrorStringI2C (_LastEndT));
-        if ( _LastEndT > err )
-            err = _LastEndT;
+        I2C_LOCATION_T& board = _pBoard[z].Board;
+
+        if ( board.Cluster != -1 )
+            {
+            Wire.beginTransmission (0x70 + board.Cluster);  // TCA9548A address
+            Wire.write (0);                                 // send byte to select bus
+            _LastEndT = Wire.endTransmission();
+            if ( _LastEndT )
+                DBGMUX ("Return for cluster %d is %s", board.Cluster, ErrorStringI2C (_LastEndT));
+            if ( _LastEndT > err )
+                err = _LastEndT;
+            }
         }
     if ( err > 0 )
         {
@@ -414,7 +427,7 @@ int I2C_INTERFACE_C::Begin ()
         }
 
     int  ecount = 0;
-    for (int z = 0;  z < _BoardCount;  z++)
+    for ( int z = 0;  z < _BoardCount;  z++ )
         {
         I2C_LOCATION_T& board = _pBoard[z].Board;
         if ( _DebugI2C )
@@ -554,4 +567,7 @@ void I2C_INTERFACE_C::Loop ()
         EndBusMux (loc);
         }
     }
+
+//#######################################################################
+I2C_INTERFACE_C I2cDevices;
 

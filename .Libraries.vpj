@@ -167,10 +167,25 @@
         </Rule>
     </Rules>
     <Files>
-        <F N="ZynthLib/src/Debug.cpp"/>
-        <F N="ZynthLib/src/Debug.h"/>
-        <F N="ZynthLib/src/I2Cdevices.cpp"/>
-        <F N="ZynthLib/src/I2Cdevices.h"/>
+        <Folder
+            Name="Source"
+            Filters="*.cpp"
+            GUID="{E4EEA181-537A-476E-9512-E1ED0365C443}">
+            <F N="ZynthLib/src/Debug.cpp"/>
+            <F N="ZynthLib/src/Envelope.cpp"/>
+            <F N="ZynthLib/src/I2Cdevices.cpp"/>
+            <F N="ZynthLib/src/SoftLFO.cpp"/>
+        </Folder>
+        <Folder
+            Name="Headers"
+            Filters="*.h"
+            GUID="{78677874-AE1B-4DBA-8D22-F7304D349B31}">
+            <F N="ZynthLib/src/ADS1115.h"/>
+            <F N="ZynthLib/src/Debug.h"/>
+            <F N="ZynthLib/src/Envelope.h"/>
+            <F N="ZynthLib/src/I2Cdevices.h"/>
+            <F N="ZynthLib/src/SoftLFO.h"/>
+        </Folder>
     </Files>
     <List Name="RTE">
     </List>

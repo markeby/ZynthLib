@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <esp_debug_helpers.h>
 
+#define DEBUG_SYNTH         1
 
 #define DEBUG_NO_INDEX      255
 

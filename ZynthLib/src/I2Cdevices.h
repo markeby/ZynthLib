@@ -9,8 +9,6 @@
 #define MAX_ANALOG_PER_BOARD  8
 
 //#######################################################################
-typedef int I2C_CLUSTERS_T;
-
 typedef struct
     {
     int         Cluster;        // Mux chip address
@@ -69,11 +67,11 @@ private:
     int             _BoardCount;
     ushort          _AtoD_loopDevice;
     CallbackUShort  _CallbackAtoD;
-    I2C_CLUSTERS_T* _pClusterList;
     uint8_t         _LastEndT;
     bool            _DebugI2C;
 
 
+    void     BuildTables        (I2C_LOCATION_T* plocation);
     char*    ErrorString        (int err);
     void     BusMux             (I2C_LOCATION_T& loc);
     void     EndBusMux          (I2C_LOCATION_T& loc);
@@ -94,11 +92,11 @@ private:
     bool     ValidateDevice     (ushort board);
 
 public:
-         I2C_INTERFACE_C (I2C_CLUSTERS_T* pcluster, I2C_LOCATION_T* ploc);
+         I2C_INTERFACE_C (void);
          // return:  0 = all good
          //         -1 = Total failure
          //         +X = Some interface errors
-    int  Begin              (void);
+    int  Begin              (I2C_LOCATION_T* plocation);
     bool IsPortValid        (short device);
     void Loop               (void);
     bool IsAnalogIn         (short device);
@@ -130,5 +128,6 @@ public:
 
     };
 
-#pragma once
+//#######################################################################
+extern  I2C_INTERFACE_C         I2cDevices;
 
