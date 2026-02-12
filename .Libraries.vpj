@@ -175,6 +175,7 @@
             <F N="ZynthLib/src/Envelope.cpp"/>
             <F N="ZynthLib/src/I2Cdevices.cpp"/>
             <F N="ZynthLib/src/SoftLFO.cpp"/>
+            <F N="ZynthLib/src/ZynthTime.cpp"/>
         </Folder>
         <Folder
             Name="Headers"
@@ -185,6 +186,7 @@
             <F N="ZynthLib/src/Envelope.h"/>
             <F N="ZynthLib/src/I2Cdevices.h"/>
             <F N="ZynthLib/src/SoftLFO.h"/>
+            <F N="ZynthLib/src/ZynthTime.h"/>
         </Folder>
     </Files>
     <List Name="RTE">

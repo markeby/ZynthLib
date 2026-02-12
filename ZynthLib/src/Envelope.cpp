@@ -8,6 +8,7 @@
 #include <Arduino.h>
 
 //ZynthLib
+#include <ZynthTime.h>
 #include <Debug.h>
 #include <I2Cdevices.h>
 #include <SoftLFO.h>
@@ -53,19 +54,19 @@ ENVELOPE_C* ENV_GENERATOR_C::NewADSR (uint8_t index, String name, uint16_t devic
     }
 
 //#######################################################################
-void ENV_GENERATOR_C::Loop (float delta_milli_sec)
+void ENV_GENERATOR_C::Loop ()
     {
-    SoftLFO.Loop (delta_milli_sec);     // execute software LFO
+    SoftLFO.Loop ();                // execute software LFO
 
     for ( deque<ENVELOPE_C>::iterator it = _Envelopes.begin();  it != _Envelopes.end();  ++it )
         {
-        if ( it->IsActive () )                      // if we ain't active then we don't need to run this.
+        if ( it->IsActive () )      // if we ain't active then we don't need to run this.
             {
-            it->Process (delta_milli_sec);
+            it->Process (ZyTime.DeltaTimeMS ());
             it->Update ();
             }
         }
-    I2cDevices.Update ();               // process all changes on I2C devices
+    I2cDevices.Update ();           // process all changes on I2C devices
     }
 
 //#######################################################################

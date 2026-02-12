@@ -42,6 +42,7 @@ static const char* LabelError = "I2C";
     _AtoD_loopDevice  = 0;
     }
 
+//#######################################################################
 void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
     {
     I2C_LOCATION_T* zploc = plocation;

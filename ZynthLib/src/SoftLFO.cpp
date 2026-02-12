@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 //ZynthLib
+#include <ZynthTime.h>
 #include <SoftLFO.h>
 #include <Debug.h>
 
@@ -49,10 +50,10 @@ void SOFT_LFO_C::OutputFrequency ()
 // Generator for sin  and triangle waves
 //  - Output is -1 to +1
 //#######################################################################
-void SOFT_LFO_C::Loop (float delta_milli_sec)
+void SOFT_LFO_C::Loop ()
     {
     // Calculate current position of wavelength and remove overflow
-    _Current += delta_milli_sec;
+    _Current += ZyTime.DeltaTimeMS ();
     if ( _Current > _WaveLength )
         _Current -= _WaveLength;
 

@@ -119,7 +119,7 @@ public:
                 ENV_GENERATOR_C (void);
     ENVELOPE_C* NewADSR         (uint8_t index, String name, uint16_t device, uint16_t device_range, uint8_t& usecount);
     void        Debug           (bool state);
-    void        Loop            (float delta_milli_sec);
+    void        Loop            (void);
     };
 
 //#######################################################################

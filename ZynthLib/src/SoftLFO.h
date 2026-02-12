@@ -27,7 +27,7 @@ private:
 
 public:
           SOFT_LFO_C    (void);
-    void  Loop          (float delta_milli_sec);
+    void  Loop          (void);
     void  ResetControl  (void)                      {  _Modulation = 0; }
     void  Multiplier    (byte mchan, float value)   { if ( mchan == _Midi ) _Modulation = value; }
     void  SetMidi       (byte mchan)                { _Midi = mchan; }
