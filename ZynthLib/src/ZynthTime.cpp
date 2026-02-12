@@ -10,6 +10,8 @@
 //#######################################################################
     ZYNTH_TIME_C::ZYNTH_TIME_C ()
     {
+    pinMode      (HEARTBEAT_PIN, OUTPUT);
+    digitalWrite (HEARTBEAT_PIN, LOW);      // LED off
     _RunTime           = 0;
     _DeltaTimeMicro    = 0.0;
     _DeltaTimeMilli    = 0.0;
