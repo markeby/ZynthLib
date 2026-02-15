@@ -26,9 +26,19 @@ using CallbackUShort = void (*)(ushort val);
 class I2C_INTERFACE_C
     {
 private:
+    enum BOARD_TYPE
+        {
+        MCP4728 = 0,        // quad 12 bit digital to analog converter
+        MCP47FXBX8,         // hex  12 bit digital to analog converter
+        ADS1115,            // quad 16 bit analog to digital
+        PCF8575,            // 8 bit (PC8574A) & 16 bit (PCF8575) digital out without pullups
+        MCP23008,           // 8 bit digital out with pullups
+        };
+
     typedef struct
         {
         I2C_LOCATION_T  Board;              // This board access info
+        BOARD_TYPE      BoardType;          // one of the board types from enum
         bool            Valid;              // This board is valid
         uint16_t        NewDataMask;        // bits that represent data updates
         union
@@ -77,15 +87,18 @@ private:
     void     EndBusMux          (I2C_LOCATION_T& loc);
 
     void     Write              (I2C_LOCATION_T& loc, uint8_t* buff, uint8_t length);
-    void     WriteRegisterByte  (uint8_t port, uint8_t data);
-    void     WriteRegister16    (uint8_t port, uint8_t addr, uint16_t data);
+    void     WriteByte          (uint8_t port, uint8_t data);
+    void     WriteRegisterByte  (uint8_t port, uint8_t addr, uint8_t data);
+    void     WriteRegisterWord  (uint8_t port, uint8_t addr, uint16_t data);
     uint16_t ReadRegister16     (uint8_t port, uint8_t addr);
-    void     Init47FEB28        (I2C_LOCATION_T &loc);
+    void     Init47FXBX8        (I2C_LOCATION_T &loc);
     void     Init4728           (I2C_LOCATION_T &loc);
-    void     Init8575           (I2C_LOCATION_T &loc);
-    void     Write47FEB28       (I2C_BOARD_T& board);
+    void     Init857x           (I2C_LOCATION_T &loc);
+    void     Init23008          (I2C_LOCATION_T &loc);
+    void     Write47FXBX8       (I2C_BOARD_T& board);
     void     Write4728          (I2C_BOARD_T& board);
     void     Write857x          (I2C_BOARD_T& board);
+    void     Write23008         (I2C_BOARD_T& board);
     uint8_t  DecodeIndex1115    (uint8_t index);
     void     Init1115           (I2C_LOCATION_T &loc);
     void     Start1115          (I2C_DEVICE_T& device);
