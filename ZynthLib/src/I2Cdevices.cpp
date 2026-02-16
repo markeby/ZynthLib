@@ -342,6 +342,11 @@ void I2C_INTERFACE_C::Write47FXBX8 (I2C_BOARD_T& board)
     if ( ! board.Valid )
         return;
 
+    DBGDA ("%d:%d:%#3.3x%c write  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %s",
+           loc.Cluster, loc.Slice, loc.Port,
+           (( board.Valid ) ? ' ' : '-'),
+           board.DtoA[0], board.DtoA[1], board.DtoA[2], board.DtoA[3], board.DtoA[4], board.DtoA[5], board.DtoA[6], board.DtoA[7], loc.Name);
+
     // Only update thos registers that have changed.
     int bufsize = 0;
     for ( int z = 0;  z < 8;  z++ )
@@ -552,7 +557,6 @@ void I2C_INTERFACE_C::D2Analog (short device, ushort value)
     {
     I2C_DEVICE_T& dev = _pDevice[device];
     I2C_BOARD_T*  brd = dev.pBoard;
-
     if ( brd->Valid )
         {
         *(dev.pDtoA) = value;
@@ -579,7 +583,6 @@ void I2C_INTERFACE_C::Update ()
     for ( int z = 0;  z < _BoardCount;  z++ )
         {
         I2C_BOARD_T& brd = _pBoard[z];
-
         if ( brd.NewDataMask != 0 )
             {
             I2C_LOCATION_T &board = brd.Board;
