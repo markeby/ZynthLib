@@ -75,7 +75,7 @@ ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t de
     {
     _Name         = name;
     _DevicePortIO = device;
-    _Index        = index;
+    _Index        = index + 1;
     _Muted        = false;
     _DualUse      = false;
     _Current      = 0;
@@ -90,6 +90,7 @@ ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t de
     _DamperMode   = DAMPER::OFF;
     _Expression   = 1.0;
     _DeviceRange  = device_range;
+    _LevelDelta   = 0;
     Clear ();
     }
 
@@ -164,10 +165,22 @@ void ENVELOPE_C::SetLevel (ESTATE state, float percent)
         case ESTATE::START:
             str = "BASE";
             _Bottom = percent;
+            if ( _DualUse )
+                {
+                _LevelDelta = _Top - _Bottom;
+                if ( _State == ESTATE::IDLE )
+                    {
+                    _Current = _Bottom;
+                    _Updated = true;
+                    Update ();
+                    }
+                }
             break;
         case ESTATE::ATTACK:
             str = "MAXIMUM";
             _Top = percent;
+            if ( _DualUse )
+                _LevelDelta = _Top - _Bottom;
             break;
         case ESTATE::DECAY:
         case ESTATE::SUSTAIN:
@@ -206,6 +219,34 @@ float ENVELOPE_C::GetLevel (ESTATE state)
     }
 
 //#######################################################################
+void ENVELOPE_C::SetDualUse (bool sel)
+    {
+    _DualUse = sel;
+
+    if ( sel )
+        {
+        _Current = _Bottom;
+        _LevelDelta = _Top - _Bottom;
+        Update ();
+        DBG ("Enable Dual Use");
+        }
+    else
+        {
+        _Current = 0.0;
+        Update ();
+        DBG ("Disable Dual Use");
+        }
+    }
+
+//#######################################################################
+void ENVELOPE_C::SetModulationLevel (float lvl)
+    {
+    _Current = _Bottom + (_LevelDelta * lvl);
+    _Updated = true;
+    Update ();
+    }
+
+//#######################################################################
 void ENVELOPE_C::SetSoftLFO (bool sel)
     {
     _UseSoftLFO = sel;
@@ -234,14 +275,6 @@ void ENVELOPE_C::End ()
     }
 
 //#######################################################################
-void ENVELOPE_C::SetCurrent (float data)
-    {
-    _Current = data;
-    short z = (short)(data * _DeviceRange);
-    I2cDevices.D2Analog (_DevicePortIO, z);
-    }
-
-//#######################################################################
 void ENVELOPE_C::SetOverride (uint16_t data)
     {
     I2cDevices.D2Analog (_DevicePortIO, data);
@@ -264,7 +297,8 @@ void ENVELOPE_C::Update ()
                 output = 0.0;
             }
         int16_t z = (int16_t)(_DeviceRange * output * _Expression);    //Calculate final D to A with output level and expression level
-        I2cDevices.D2Analog (_DevicePortIO, z);
+        DBG ("Updating port %d with %d", _DevicePortIO, z)
+        I2cDevices.D2Analog (_DevicePortIO, z);;
         _Updated = false;
         }
     }
@@ -302,7 +336,7 @@ void ENVELOPE_C::Process (float deltaTime)
                 _NoDecay = true;
 
             _Timer       = 0.0;
-            _Delta       = _Top - _Bottom ;
+            _Delta       = _Top - _Bottom;
             _PeakLevel   = false;
             _TargetTime  = _AttackTime - TIME_THRESHOLD;
             _State       = ESTATE::ATTACK;

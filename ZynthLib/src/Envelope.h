@@ -18,7 +18,9 @@ enum class ENV_CTRL_E : int
     MODWHEEL = 3
     };
 
-//#######################################################################
+//###########################################
+// Envelope states
+//###########################################
 enum class ESTATE
     {
     IDLE = 0,
@@ -29,6 +31,9 @@ enum class ESTATE
     RELEASE
     };
 
+//###########################################
+// Damper modes
+//###########################################
 enum class DAMPER : byte
     {
     OFF = 0,
@@ -36,6 +41,13 @@ enum class DAMPER : byte
     INVERT,
     MAX
     };
+
+//###########################################
+// Default output scaling macro
+//###########################################
+#define FromUnityDA(vf) (vf * )
+
+
 
 //#######################################################################
 class ENVELOPE_C
@@ -48,6 +60,7 @@ private:
     // Runtime state
     byte&       _UseCount;      // increment started and decriment as idle
     ESTATE      _State;         // Current state of this mixer channel
+    float       _LevelDelta;    // delta between base and top level setting for use with modulation generation
 
     bool        _Muted;         // Do not respond to Start directive
     bool        _Updated;       // Flag indicating update output
@@ -84,26 +97,27 @@ private:
     float       _DeviceRange;
 
 public:
-                ENVELOPE_C      (uint8_t index, String name, uint16_t device, uint16_t device_rang, uint8_t& usecount);
-    void        Clear           (void);
-    void        Mute            (bool state);
-    void        Expression      (float level)       { _Expression = level; }
-    void        Damper          (bool state)        { _Damper = state; }
-    void        Process         (float deltaTime);
-    void        SetCurrent      (float data);
-    void        SetOverride     (uint16_t data);
-    void        Update          (void);
-    void        Start           (void);
-    void        Start           (bool modstate)     { _UseSoftLFO = modstate; _ScaleLFO = 0.2; Start (); }
-    void        End             (void);
-    void        SetTime         (ESTATE state, float time);
-    float       GetTime         (ESTATE state);
-    void        SetLevel        (ESTATE state, float percent);
-    float       GetLevel        (ESTATE state);
-    void        SetSoftLFO      (bool sel);
-    void        SetDamperMode   (DAMPER mode)   { _DamperMode = mode; }
-    void        SetDualUse      (bool sel)      { _DualUse = sel; }
-    uint16_t    GetPortIO       (void)          { return (_DevicePortIO); }  // Return D/A channel number
+                ENVELOPE_C          (uint8_t index, String name, uint16_t device, uint16_t device_rang, uint8_t& usecount);
+    void        Clear               ();
+    void        Mute                (bool state);
+    void        Process             (float deltaTime);
+    void        SetOverride         (uint16_t data);
+    void        Update              ();
+    void        Start               ();
+    void        End                 ();
+    void        SetTime             (ESTATE state, float time);
+    float       GetTime             (ESTATE state);
+    void        SetLevel            (ESTATE state, float percent);
+    float       GetLevel            (ESTATE state);
+    void        SetSoftLFO          (bool sel);
+    void        SetDualUse          (bool sel);
+    void        SetModulationLevel  (float lvl);
+
+    uint16_t    GetPortIO           ()                  { return (_DevicePortIO); }  // Return D/A channel number
+    void        SetDamperMode       (DAMPER mode)       { _DamperMode = mode; }
+    void        Start               (bool modstate)     { _UseSoftLFO = modstate; _ScaleLFO = 0.2; Start (); }
+    void        Expression          (float level)       { _Expression = level; }
+    void        Damper              (bool state)        { _Damper = state; }
 
     int IsActive (void)
         { return (_Active); }
