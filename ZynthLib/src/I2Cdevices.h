@@ -9,6 +9,12 @@
 #define MAX_ANALOG_PER_BOARD  8
 
 //#######################################################################
+#define I2C_SPEED_400   400000UL        // clock for Fast mode
+#define I2C_SPEED_800   800000UL        // clock for High-speed to Ultra-fast mode
+#define I2C_SPEED_1700  1700000UL       // clock for 1.7Mhz
+#define I2C_SPEED_3400  3400000UL       // clock for 3.4Mhz
+
+//#######################################################################
 typedef struct
     {
     int         Cluster;        // Mux chip address
@@ -109,7 +115,7 @@ public:
          // return:  0 = all good
          //         -1 = Total failure
          //         +X = Some interface errors
-    int  Begin              (I2C_LOCATION_T* plocation);
+    int  Begin              (I2C_LOCATION_T* plocation, uint64_t clock);
     bool IsPortValid        (short device);
     void Loop               (void);
     bool IsAnalogIn         (short device);

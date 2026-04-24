@@ -342,10 +342,10 @@ void I2C_INTERFACE_C::Write47FXBX8 (I2C_BOARD_T& board)
     if ( ! board.Valid )
         return;
 
-    DBGDA ("%d:%d:%#3.3x%c write  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %s",
-           loc.Cluster, loc.Slice, loc.Port,
-           (( board.Valid ) ? ' ' : '-'),
-           board.DtoA[0], board.DtoA[1], board.DtoA[2], board.DtoA[3], board.DtoA[4], board.DtoA[5], board.DtoA[6], board.DtoA[7], loc.Name);
+//    DBGDA ("%d:%d:%#3.3x%c write  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %#4.4d  %s",
+//           loc.Cluster, loc.Slice, loc.Port,
+//           (( board.Valid ) ? ' ' : '-'),
+//           board.DtoA[0], board.DtoA[1], board.DtoA[2], board.DtoA[3], board.DtoA[4], board.DtoA[5], board.DtoA[6], board.DtoA[7], loc.Name);
 
     // Only update thos registers that have changed.
     int bufsize = 0;
@@ -353,6 +353,9 @@ void I2C_INTERFACE_C::Write47FXBX8 (I2C_BOARD_T& board)
         {
         if ( board.NewDataMask & (1 << z) )
             {
+            DBGDA ("%d:%d:%#3.3x%c write chan %d data %#4.4d", loc.Cluster, loc.Slice, loc.Port,
+                   (( board.Valid ) ? ' ' : '-'), z, board.DtoA[z]);
+
             buf[bufsize++] = z << 3;
             buf[bufsize++] = board.ByteData[(z * 2) + 1];
             buf[bufsize++] = board.ByteData[(z * 2)];
@@ -440,7 +443,7 @@ void I2C_INTERFACE_C::Write23008 (I2C_BOARD_T& board)
 // return:  0 = all good
 //         -1 = Total failure
 //         +X = Some interface errors
-int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location)
+int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock)
     {
     String  str;
     uint8_t err = 0;
@@ -451,9 +454,10 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location)
         return (-1);
 
     Wire.begin ();
+    Wire.setClock (clock);
 //    Wire.setClock (3400000UL);       // clock for 3.4Mhz
 //    Wire.setClock (1700000UL);       // clock for 1.7Mhz
-    Wire.setClock (800000UL);       // clock for High-speed to Ultra-fast mode
+//    Wire.setClock (800000UL);       // clock for High-speed to Ultra-fast mode
 //    Wire.setClock (400000UL);     // clock for Fast mode
 
     for ( int z = 0;  z < _BoardCount;  z++ )      // first, let's check the cluster expanders
