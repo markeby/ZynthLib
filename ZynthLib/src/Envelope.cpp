@@ -113,7 +113,8 @@ void ENVELOPE_C::Mute (bool state)
     {
     _Muted = state;
     DBG ("Mute set to %d", state);
-    Clear ();
+    if ( state )
+        Clear ();
     }
 
 

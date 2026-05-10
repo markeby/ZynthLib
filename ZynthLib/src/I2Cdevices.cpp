@@ -576,8 +576,11 @@ void I2C_INTERFACE_C::DigitalOut (short device, bool value)
 
     if ( brd->Valid )
         {
-        bitWrite(*(dev.pDigital), dev.DevIndex, value);
-        bitSet (brd->NewDataMask, dev.DevIndex);      // Bit for this channel is set to identify update required
+        if ( bitRead (*(dev.pDigital),  dev.DevIndex) != value )
+            {
+            bitWrite (*(dev.pDigital), dev.DevIndex, value);
+            bitSet (brd->NewDataMask, dev.DevIndex);      // Bit for this channel is set to identify update required
+            }
         }
     }
 
