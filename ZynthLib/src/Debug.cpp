@@ -10,6 +10,14 @@
 #include "Debug.h"
 using namespace std;
 
+bool __Debug_Off__ = false;
+
+//#######################################################################
+void DebugDisable (bool state)
+    {
+    __Debug_Off__ = state;
+    }
+
 //#######################################################################
 const String vFormat (const char *const zcFormat, ...)
     {
