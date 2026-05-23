@@ -2,44 +2,43 @@
 // Module:     SoftLFO.h
 // Descrption: Sine wave processor
 // Creator:    markeby
-// Date:       7/05/2024
+// Date:       5/22/2026
 //#######################################################################
 #pragma once
+#include <deque>
 
 //#######################################################################
 //#######################################################################
 class SOFT_LFO_C
     {
 private:
-    short   _FreqCoarse;
-    short   _FreqFine;
-    short   _Freq;
-    float   _Frequency;
-    float   _WaveLength;
-    float   _Current;
-    float   _Sine;
-    float   _Triangle;
-    float   _Modulation;
     byte    _Midi;
-
-    void OutputFrequency    (void);
-    void ProcessFreq        (void);
+    float   _Frequency_hz;
+    float   _Current_ms;
+    float   _WaveLength_ms;
+    float*  _pOutput;
 
 public:
-          SOFT_LFO_C    (void);
-    void  Loop          (void);
-    void  ResetControl  (void)                      {  _Modulation = 0; }
-    void  Multiplier    (byte mchan, float value)   { if ( mchan == _Midi ) _Modulation = value; }
-    void  SetMidi       (byte mchan)                { _Midi = mchan; }
-    byte  GetMidi       (void)                      { return (_Midi); }
-    float GetTri        (void)                      { return (_Triangle * _Modulation); }
-    float GetSin        (void)                      { return (_Sine * _Modulation); }
-    void  SetFreqCoarse (short value)               { _FreqCoarse = value; ProcessFreq (); }
-    void  SetFreqFine   (short value);
-    short GetFreq       (void)                      { return (_Freq); }
-    void  SetFreq       (short value)               { _Freq = value; OutputFrequency (); }
+          SOFT_LFO_C (byte midi, float* fp);
+    void  Process       ();
+    void  SetFrequency  (float val);
+    byte  Midi          ()         { return (_Midi); }
     };
 
 //#######################################################################
-extern SOFT_LFO_C SoftLFO;
+class LFO_STACK_C
+    {
+private:
+    std::deque<SOFT_LFO_C>  _Lfo;
+    float*                  _pOutputs;          // pointer to hold array of the number of voices to effect (midi channels)
+
+public:
+                LFO_STACK_C     (int voice_count);
+    void        Process         ();
+    void        Create          (byte midi);
+    void        Remove          (byte midi);
+    SOFT_LFO_C* GetLFO          (byte midi);
+    void        SetFrequency    (byte midi,  float val);
+    float*      Output          (byte midi)                 { return (&(_pOutputs[midi - 1])); }
+    };
 

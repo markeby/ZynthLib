@@ -47,8 +47,6 @@ enum class DAMPER : byte
 //###########################################
 #define FromUnityDA(vf) (vf * )
 
-
-
 //#######################################################################
 class ENVELOPE_C
     {
@@ -58,37 +56,39 @@ private:
     bool        _TriggerEnd;
 
     // Runtime state
-    byte&       _UseCount;      // increment started and decriment as idle
-    ESTATE      _State;         // Current state of this mixer channel
-    float       _LevelDelta;    // delta between base and top level setting for use with modulation generation
+    byte&       _UseCount;          // increment started and decriment as idle
+    ESTATE      _State;             // Current state of this mixer channel
+    float       _LevelDelta;        // delta between base and top level setting for use with modulation generation
 
-    bool        _Muted;         // Do not respond to Start directive
-    bool        _Updated;       // Flag indicating update output
-    bool        _PeakLevel;     // Flag indicating sustain and peak are the same
+    bool        _Muted;             // Do not respond to Start directive
+    bool        _Updated;           // Flag indicating update output
+    bool        _PeakLevel;         // Flag indicating sustain and peak are the same
+    float*      _TremoloOuput;
 
     // User supplied inputs
-    bool        _DualUse;       // Dual usage flag  (false = VCA,  true = VCF,other)
-    bool        _UseSoftLFO;    // Flag to enable sofware LFO
-    float       _ScaleLFO;      // Scale reduction multiplier for LFO
-    DAMPER      _DamperMode;    // Mode to utilize string damper
-    float       _Top;           // Fraction of one (percent).
-    float       _Bottom;        // Fraction of one (percent).
-    float       _SetSustain;    // The settin of sustain level up to one.
-    float       _AttackTime;    // Attack time in uSec.
-    float       _DecayTime;     // Decay time to sustatin level in uSec.
-    float       _ReleaseTime;   // How long to end back at base level in uSec.
-    float       _Expression;    // Final volume multiplier
-    bool        _Damper;        // state of damper pedal
-
+    bool        _DualUse;           // Dual usage flag  (false = VCA,  true = VCF,other)
+    bool        _UseTremolo;        // Flag to enable sofware LFO
+    DAMPER      _DamperMode;        // Mode to utilize string damper
+    float       _Top;               // Fraction of one (percent)
+    float       _Bottom;            // Fraction of one (percent)
+    float       _SetSustain;        // The settin of sustain level up to one
+    float       _AttackTime;        // Attack time in uSec
+    float       _DecayTime;         // Decay time to sustatin level in uSec
+    float       _ReleaseTime;       // How long to end back at base level in uSec
+    float       _Expression;        // Final volume multiplier
+    bool        _Damper;            // state of damper pedal
+    float       _TremoloMaxLevel;   // Maximum level tremolo can effect (0 to 1)
+    float       _TremoloWheelLevel; // Mod wheel position for tremelo level
+    float       _TremoloWheel;      // Use mod wheel
+    bool        _TremoloInvert;     // invert tremolo wave
 
     // runtime calculations
-    float       _Delta;         // Distance for the current state.
-    float       _Sustain;       // The usable Sustain level up to one
-    bool        _NoDecay;       // Decay time set so low that there is no decay.  Sustain serves no purpose then.
-    float       _Timer;         // Timer loaded with state time
-    float       _TargetTime;    // Timer is incrimented until this time is exceeded
-    float       _Current;       // Current level zero to one
-    float       _Target;
+    float       _Delta;             // Distance for the current state
+    float       _Sustain;           // The usable Sustain level up to one
+    bool        _NoDecay;           // Decay time set so low that there is no decay.  Sustain serves no purpose then.
+    float       _Timer;             // Timer loaded with state time
+    float       _TargetTime;        // Timer is incrimented until this time is exceeded
+    float       _Current;           // Current level zero to one
 
     // Fixed parameters at initialization
     String      _Name;
@@ -106,18 +106,18 @@ public:
     void        Start               ();
     void        End                 ();
     void        SetTime             (ESTATE state, float time);
-    float       GetTime             (ESTATE state);
     void        SetLevel            (ESTATE state, float percent);
-    float       GetLevel            (ESTATE state);
-    void        SetSoftLFO          (bool sel);
     void        SetDualUse          (bool sel);
     void        SetModulationLevel  (float lvl);
-
     uint16_t    GetPortIO           ()                  { return (_DevicePortIO); }  // Return D/A channel number
     void        SetDamperMode       (DAMPER mode)       { _DamperMode = mode; }
-    void        Start               (bool modstate)     { _UseSoftLFO = modstate; _ScaleLFO = 0.2; Start (); }
     void        Expression          (float level)       { _Expression = level; }
     void        Damper              (bool state)        { _Damper = state; }
+    void        TremoloMax          (float lvl)         { _TremoloMaxLevel = lvl; }
+    void        TremoloPointer      (float* pf)         { _TremoloOuput = pf; _UseTremolo = ( pf != nullptr ) ? true : false; }
+    void        TremoloWheel        (bool state)        { _TremoloWheel = state;  _TremoloWheelLevel = 0.0f; }
+    void        TremoloWheelLevel   (float val)         { _TremoloWheelLevel = val; }
+    void        TremoloInvert       (bool state)        { _TremoloInvert = state; }
 
     int IsActive (void)
         { return (_Active); }

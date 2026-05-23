@@ -33,7 +33,7 @@ inline void ZYNTH_TIME_C::TimeDelta (void)
     else
         _DeltaTimeMilliAvg = (_DeltaTimeMilliAvg + _DeltaTimeMilli) / 2;
     strt = _RunTime;
-    if ( _DeltaTimeMilli > 210 )     // throw out long serial debug outputs
+    if ( _DeltaTimeMilli > 100 )     // throw out long serial debug outputs
         return;
     if ( _DeltaTimeMilli > _LongestTimeMilli )
         _LongestTimeMilli = _DeltaTimeMilli;

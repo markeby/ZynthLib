@@ -9,9 +9,11 @@
 #include <Wire.h>
 
 //ZynthLib
-#include "I2Cdevices.h"
+#include <I2Cdevices.h>
+#include <Debug.h>
+
+// local file needed for only this source file
 #include "ADS1115.h"
-#include "Debug.h"
 
 #ifdef DEBUG_SYNTH
 static const char* LabelDA = "I2C-DA";

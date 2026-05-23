@@ -11,10 +11,7 @@
 #include <ZynthTime.h>
 #include <Debug.h>
 #include <I2Cdevices.h>
-#include <SoftLFO.h>
-
-//local includes
-#include "Envelope.h"
+#include <Envelope.h>
 
 using namespace std;
 
@@ -56,8 +53,6 @@ ENVELOPE_C* ENV_GENERATOR_C::NewADSR (uint8_t index, String name, uint16_t devic
 //#######################################################################
 void ENV_GENERATOR_C::Loop ()
     {
-    SoftLFO.Loop ();                // execute software LFO
-
     for ( deque<ENVELOPE_C>::iterator it = _Envelopes.begin();  it != _Envelopes.end();  ++it )
         {
         if ( it->IsActive () )      // if we ain't active then we don't need to run this.
@@ -71,26 +66,28 @@ void ENV_GENERATOR_C::Loop ()
 
 //#######################################################################
 //#######################################################################
-ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t device_range, uint8_t& usecount) : _UseCount(usecount)
+ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t device_range, uint8_t& usecount) : _UseCount(usecount), _TremoloOuput (nullptr)
     {
-    _Name         = name;
-    _DevicePortIO = device;
-    _Index        = index + 1;
-    _Muted        = false;
-    _DualUse      = false;
-    _Current      = 0;
-    _Top          = 0;
-    _Bottom       = 0;
-    _SetSustain   = 0;
-    _AttackTime   = 0;
-    _DecayTime    = 0;
-    _ReleaseTime  = 0;
-    _Active       = 0;
-    _UseSoftLFO   = false;
-    _DamperMode   = DAMPER::OFF;
-    _Expression   = 1.0;
-    _DeviceRange  = device_range;
-    _LevelDelta   = 0;
+    _Name               = name;
+    _DevicePortIO       = device;
+    _Index              = index + 1;
+    _Muted              = false;
+    _DualUse            = false;
+    _Current            = 0;
+    _Top                = 0;
+    _Bottom             = 0;
+    _SetSustain         = 0;
+    _AttackTime         = 0;
+    _DecayTime          = 0;
+    _ReleaseTime        = 0;
+    _Active             = 0;
+    _UseTremolo         = false;
+    _DamperMode         = DAMPER::OFF;
+    _Expression         = 1.0;
+    _DeviceRange        = device_range;
+    _TremoloWheel       = false;
+    _TremoloWheelLevel  = 0.0f;
+    _LevelDelta         = 0;
     Clear ();
     }
 
@@ -137,26 +134,6 @@ void ENVELOPE_C::SetTime (ESTATE state, float time)
     }
 
 //#######################################################################
-float ENVELOPE_C::GetTime (ESTATE state)
-    {
-    float val = 0.0;
-
-    switch (state )
-        {
-        case ESTATE::ATTACK:
-            val = _AttackTime;
-            break;
-        case ESTATE::DECAY:
-            val = _DecayTime;
-            break;
-        case ESTATE::RELEASE:
-            val = _ReleaseTime;
-            break;
-        }
-    return (val);
-    }
-
-//#######################################################################
 void ENVELOPE_C::SetLevel (ESTATE state, float percent)
     {
     String str;
@@ -195,37 +172,14 @@ void ENVELOPE_C::SetLevel (ESTATE state, float percent)
     }
 
 //#######################################################################
-float ENVELOPE_C::GetLevel (ESTATE state)
-    {
-    float val = 0.0;
-
-    switch ( state )
-        {
-        case ESTATE::START:
-            val = _Bottom;
-            break;
-        case ESTATE::ATTACK:
-            val = _Top;
-            break;
-        case ESTATE::DECAY:
-            val = _SetSustain;
-            break;
-        case ESTATE::SUSTAIN:
-            val = _SetSustain;
-            break;
-        case ESTATE::RELEASE:
-            break;
-        }
-    return (val);
-    }
-
-//#######################################################################
 void ENVELOPE_C::SetDualUse (bool sel)
     {
     _DualUse = sel;
 
     if ( sel )
         {
+        DbgS (_Name.c_str ());
+        _UseTremolo = false;
         _Current = _Bottom;
         _LevelDelta = _Top - _Bottom;
         Update ();
@@ -246,14 +200,6 @@ void ENVELOPE_C::SetModulationLevel (float lvl)
     _Updated = true;
     Update ();
     }
-
-//#######################################################################
-void ENVELOPE_C::SetSoftLFO (bool sel)
-    {
-    _UseSoftLFO = sel;
-    DBG ("Toggle %s > %s", _Name, (( sel ) ? "ON" : "Off") );
-    }
-
 
 //#######################################################################
 void ENVELOPE_C::Start ()
@@ -289,15 +235,19 @@ void ENVELOPE_C::Update ()
     if ( _Updated )
         {
         output = _Current;
-        if ( _UseSoftLFO )
+        if ( _UseTremolo )
             {
-            output += output * (SoftLFO.GetTri () * _ScaleLFO);
-            if ( output > 1.0 )
-                output = 1.0;
-            if ( output < 0.0 )
-                output = 0.0;
+            float zf = *_TremoloOuput;
+            float zl = _TremoloMaxLevel;
+            if ( _TremoloInvert )
+                zf = -zf;
+            if ( _TremoloWheel )
+                {
+                zl *= _TremoloWheelLevel;
+                }
+            output *= (1.0 - 0.5 * (zf + 1.0) * zl);
             }
-        int16_t z = (int16_t)(_DeviceRange * output * _Expression);    //Calculate final D to A with output level and expression level
+        int16_t z = (int16_t)(_DeviceRange * output * _Expression);    //Calculate final D to A with output level with expression and tremolo
         DBG ("Updating port %d with %d", _DevicePortIO, z)
         I2cDevices.D2Analog (_DevicePortIO, z);;
         _Updated = false;
@@ -308,7 +258,7 @@ void ENVELOPE_C::Update ()
 //#######################################################################
 void ENVELOPE_C::Process (float deltaTime)
     {
-    if ( _UseSoftLFO )
+    if ( _UseTremolo )
         _Updated = true;
 
     //***************************************
