@@ -178,7 +178,6 @@ void ENVELOPE_C::SetDualUse (bool sel)
 
     if ( sel )
         {
-        DbgS (_Name.c_str ());
         _UseTremolo = false;
         _Current = _Bottom;
         _LevelDelta = _Top - _Bottom;
