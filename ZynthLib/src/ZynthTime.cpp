@@ -17,6 +17,7 @@
     _DeltaTimeMilli    = 0.0;
     _DeltaTimeMilliAvg = 0.0;
     _LongestTimeMilli  = 0.0;
+    _SkipLongest       = 1000;
     _FailAlert         = false;
     }
 
@@ -35,6 +36,13 @@ inline void ZYNTH_TIME_C::TimeDelta (void)
     strt = _RunTime;
     if ( _DeltaTimeMilli > 100 )     // throw out long serial debug outputs
         return;
+
+    if ( _SkipLongest )        // interval that dumps a lot of content to
+        {
+        --_SkipLongest;
+        _LongestTimeMilli = 0.0;
+        return;                      //   debug output needs to be ignored
+        }
     if ( _DeltaTimeMilli > _LongestTimeMilli )
         _LongestTimeMilli = _DeltaTimeMilli;
     }

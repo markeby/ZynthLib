@@ -445,7 +445,7 @@ void I2C_INTERFACE_C::Write23008 (I2C_BOARD_T& board)
 // return:  0 = all good
 //         -1 = Total failure
 //         +X = Some interface errors
-int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock)
+int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock, int sda, int scl)
     {
     String  str;
     uint8_t err = 0;
@@ -455,6 +455,8 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock)
     if ( _BoardCount == 0 )
         return (-1);
 
+    if ( sda != -1 )
+        Wire.setPins (sda, scl);
     Wire.begin ();
     Wire.setClock (clock);
 //    Wire.setClock (3400000UL);       // clock for 3.4Mhz

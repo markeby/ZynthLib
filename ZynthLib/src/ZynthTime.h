@@ -30,6 +30,7 @@ private:
     float       _DeltaTimeMilliAvg;         // Average run time in mSec
     float       _LongestTimeMilli;          // longest running loop in mSec
     bool        _FailAlert;                 // true to alert failure mode
+    int         _SkipLongest;
 
     void TimeDelta (void);
     bool TickTime  (void);
@@ -66,6 +67,12 @@ public:
         {
         _FailAlert = state;
         }
+
+    void SkipLongest (int count)
+        {
+        _SkipLongest = count;
+        }
+
     };
 
 //#####################################
