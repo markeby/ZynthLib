@@ -15,6 +15,8 @@
 // local file needed for only this source file
 #include "ADS1115.h"
 
+using namespace ZYNTH_I2C;
+
 #ifdef DEBUG_SYNTH
 static const char* LabelDA = "I2C-DA";
 static const char* LabelAD = "I2C-AD";
@@ -49,7 +51,7 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
     {
     I2C_LOCATION_T* zploc = plocation;
 
-    for ( _BoardCount = 0;  zploc->Port != -1;  _BoardCount++, zploc++ );
+    for ( _BoardCount = 0;  zploc->Component != NULL_COMP;  _BoardCount++, zploc++ );
     if ( _BoardCount == 0 )     // if no device board specified
         return;
 
@@ -59,11 +61,40 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
     for ( int z = 0;  z < _BoardCount;  z++ )
         {
         I2C_LOCATION_T& loc = plocation[z];
-        _pBoard[z].Board    = loc;
-        _pBoard[z].Valid    = false;
-        _DeviceCount       += loc.NumberDtoA;
-        _DeviceCount       += loc.NumberAtoD;
-        _DeviceCount       += loc.NumberDigital;
+        I2C_BOARD_T& brd    = _pBoard[z];
+        brd.Board           = loc;
+        brd.Valid           = false;
+        brd.NumberDtoA      = 0;
+        brd.NumberAtoD      = 0;
+        brd.NumberDigital   = 0;
+
+        switch ( loc.Component )
+            {
+            case MCP47FXBX8:
+                brd.NumberDtoA = 8;
+                break;
+            case MCP4728:
+                brd.NumberDtoA = 4;
+                break;
+            case ADS1115:
+                brd.NumberAtoD = 4;
+                break;
+            case PCF8574:
+            case MCP23008:
+                brd.NumberDigital = 8;
+                break;
+            case PCF8575:
+                brd.NumberDigital = 16;
+                break;
+            case TCA9536:
+                brd.NumberDigital = 4;
+                break;
+            default:
+                break;
+            }
+        _DeviceCount += brd.NumberDtoA;
+        _DeviceCount += brd.NumberAtoD;
+        _DeviceCount += brd.NumberDigital;
         }
 
     _pDevice = new I2C_DEVICE_T[_DeviceCount];
@@ -73,12 +104,11 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
         {
         I2C_BOARD_T& brd = _pBoard[zb];
         brd.NewDataMask = 0;
-        if ( brd.Board.NumberDtoA )
+        if ( brd.NumberDtoA )
             {
-            brd.BoardType = ( brd.Board.NumberDtoA == 4 ) ? MCP4728 : MCP47FXBX8;
             brd.DataDtoA[0] = 0;
             brd.DataDtoA[1] = 0;
-            for ( int zd = 0;  zd < brd.Board.NumberDtoA;  zd++, at_dev++ )
+            for ( int zd = 0;  zd < brd.NumberDtoA;  zd++, at_dev++ )
                 {
                 _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
                 _pDevice[at_dev].pDtoA    = &(brd.DtoA[zd]);
@@ -86,11 +116,10 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
                 }
             }
 
-        else if ( brd.Board.NumberDigital )
+        else if ( brd.NumberDigital )
             {
-            brd.BoardType = ( (brd.Board.NumberDigital == 8) && ((brd.Board.Port & 0xF8) == 0x20) ) ? MCP23008 : PCF8575;
             brd.DataDigital = 0;
-            for ( int zd = 0;  zd < brd.Board.NumberDigital;  zd++, at_dev++ )
+            for ( int zd = 0;  zd < brd.NumberDigital;  zd++, at_dev++ )
                 {
                 _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
                 _pDevice[at_dev].pDigital = &(brd.DataDigital);
@@ -98,11 +127,10 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
                 }
             }
 
-        else if ( brd.Board.NumberAtoD )
+        else if ( brd.NumberAtoD )
             {
-            brd.BoardType = ADS1115;
             brd.DataAtoD = 0;
-            for ( int zd = 0;  zd < brd.Board.NumberAtoD;  zd++, at_dev++ )
+            for ( int zd = 0;  zd < brd.NumberAtoD;  zd++, at_dev++ )
                 {
                 _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
                 _pDevice[at_dev].pAtoD    = &(brd.AtoD[zd]);
@@ -206,26 +234,26 @@ void I2C_INTERFACE_C::WriteByte (uint8_t port, uint8_t data)
 //#######################################################################
 void I2C_INTERFACE_C::WriteRegisterByte (uint8_t port, uint8_t addr, uint8_t data)
     {
-    DBGAD ("Sending to port %#02.2x for addr %#02.2x with data %#04.4x", port, addr, data);
+    DBGAD ("Sending to port %#02.2X for addr %#02.2X with data %#04.4X", port, addr, data);
     Wire.beginTransmission (port);
     Wire.write (addr);
     Wire.write (data);
     _LastEndT = Wire.endTransmission (true);
     if ( _LastEndT )
-        ERROR ("Result: %s   port: %#02.2x   addr: %#02.2x   data: %#04.4x", ErrorStringI2C (_LastEndT), port, addr, data);
+        ERROR ("Result: %s   port: %#02.2X   addr: %#02.2X   data: %#04.4X", ErrorStringI2C (_LastEndT), port, addr, data);
     }
 
 //#######################################################################
 void I2C_INTERFACE_C::WriteRegisterWord (uint8_t port, uint8_t addr, uint16_t data)
     {
-    DBGAD ("Sending to port %#02.2x for addr %#02.2x with data %#04.4x", port, addr, data);
+    DBGAD ("Sending to port %#02.2X for addr %#02.2X with data %#04.4X", port, addr, data);
     Wire.beginTransmission (port);
     Wire.write (addr);
     Wire.write ((uint8_t)(data >> 8));
     Wire.write ((uint8_t)(data &  0xFF));
     _LastEndT = Wire.endTransmission (true);
     if ( _LastEndT )
-        ERROR ("Result: %s   port: %#02.2x   addr: %#02.2x   data: %#04.4x", ErrorStringI2C (_LastEndT), port, addr, data);
+        ERROR ("Result: %s   port: %#02.2X   addr: %#02.2X   data: %#04.4X", ErrorStringI2C (_LastEndT), port, addr, data);
     }
 
 //#######################################################################
@@ -302,6 +330,19 @@ void I2C_INTERFACE_C::Init23008 (I2C_LOCATION_T &loc)
                              };
     BusMux (loc);
     for ( int z = 0;  z < 4;  z++ )
+        WriteRegisterByte (loc.Port, d[z][0], d[z][1]);
+    EndBusMux (loc);
+    }
+
+//#######################################################################
+void I2C_INTERFACE_C::Init9536 (I2C_LOCATION_T &loc)
+    {
+    static uint8_t d[2][2] = {{ 0x03, 0xF0 },   // allocate the 4 ports as output with pullups
+                              { 0x01, 0xf7 },   // Clear output register (inverted bits)
+                             };
+
+    BusMux (loc);
+    for ( int z = 0;  z < 2;  z++ )
         WriteRegisterByte (loc.Port, d[z][0], d[z][1]);
     EndBusMux (loc);
     }
@@ -400,7 +441,7 @@ void I2C_INTERFACE_C::Write857x (I2C_BOARD_T& board)
     String str;
     if ( _DebugI2C )
         {
-        for (uint8_t z;  z < board.Board.NumberDigital;  z++)
+        for (uint8_t z;  z < board.NumberDigital;  z++)
             str += ( ((board.BitWord >> z) & 1) ) ? " 1" : " 0";
         }
     DBGDIG ("%d:%d:%#3.3x%c write %s  %s",
@@ -410,7 +451,7 @@ void I2C_INTERFACE_C::Write857x (I2C_BOARD_T& board)
             loc.Name);
 #endif
 
-    if ( board.Board.NumberDigital == 8 )       // if device is a 8574
+    if ( board.Board.Component == PCF8574 )
         board.ByteData[1] = board.ByteData[0];
     if ( board.Valid )
         Write(loc, board.ByteData, 2);
@@ -425,7 +466,7 @@ void I2C_INTERFACE_C::Write23008 (I2C_BOARD_T& board)
     String str;
     if ( _DebugI2C )
         {
-        for (uint8_t z;  z < board.Board.NumberDigital;  z++)
+        for (uint8_t z;  z < board.NumberDigital;  z++)
             str += ( ((board.BitWord >> z) & 1) ) ? " 1" : " 0";
         }
     DBGDIG ("%d:%d:%#3.3x%c write %s  %s",
@@ -438,6 +479,30 @@ void I2C_INTERFACE_C::Write23008 (I2C_BOARD_T& board)
     static uint8_t d[2] = { 0, 0 };
     d[1] = board.ByteData[0];
     Write(loc, d, 2);
+    }
+
+//#######################################################################
+void I2C_INTERFACE_C::Write9536 (I2C_BOARD_T& board)
+    {
+    I2C_LOCATION_T& loc =  board.Board;
+
+#ifdef DEBUG_SYNTH
+    String str;
+    if ( _DebugI2C )
+        {
+        for (uint8_t z;  z < board.NumberDigital;  z++)
+            str += ( ((board.BitWord >> z) & 1) ) ? " 1" : " 0";
+        }
+    DBGDIG ("%d:%d:%#3.3x%c write %s  %s",
+            loc.Cluster, loc.Slice, loc.Port,
+            (( board.Valid ) ? ' ' : '-'),
+            str.c_str (),
+            loc.Name);
+#endif
+
+    static uint8_t d[2] = {  0x01, 0xff };
+    d[1] = ~board.ByteData[0];
+    Write (loc, d, 2);
     }
 
 //#######################################################################
@@ -498,7 +563,7 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock, int sda,
             }
         else
             {
-            switch ( _pBoard[z].BoardType )
+            switch ( _pBoard[z].Board.Component )
                 {
                 case MCP47FXBX8:
                     Init47FXBX8 (board);
@@ -509,11 +574,15 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock, int sda,
                 case ADS1115:
                     Init1115 (board);
                     break;
+                case PCF8574:
                 case PCF8575:
                     Init857x (board);
                     break;
                 case MCP23008:
                     Init23008 (board);
+                    break;
+                case TCA9536:
+                    Init9536 (board);
                     break;
                 default:
                     break;
@@ -597,7 +666,7 @@ void I2C_INTERFACE_C::Update ()
         if ( brd.NewDataMask != 0 )
             {
             I2C_LOCATION_T &board = brd.Board;
-            switch ( brd.BoardType )
+            switch ( brd.Board.Component )
                 {
                 case MCP47FXBX8:
                     Write47FXBX8 (brd);
@@ -605,11 +674,15 @@ void I2C_INTERFACE_C::Update ()
                 case MCP4728:
                     Write4728 (brd);
                     break;
+                case PCF8574:
                 case PCF8575:
                     Write857x (brd);
                     break;
                 case MCP23008:
                     Write23008 (brd);
+                    break;
+                case TCA9536:
+                    Write9536 (brd);
                     break;
                 case ADS1115:
                 default:
