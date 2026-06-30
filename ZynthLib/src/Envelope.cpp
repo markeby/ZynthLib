@@ -186,7 +186,8 @@ void ENVELOPE_C::SetDualUse (bool sel)
         }
     else
         {
-        _Current = 0.0;
+        _Current = 0.0f;
+        _Bottom  = 0.0f;
         Update ();
         DBG ("Disable Dual Use");
         }
