@@ -82,7 +82,7 @@ ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t de
     _ReleaseTime        = 0;
     _Active             = 0;
     _UseTremolo         = false;
-    _DamperMode         = DAMPER::OFF;
+    _DamperMode         = DAMPER_MODE::OFF;
     _Expression         = 1.0;
     _DeviceRange        = device_range;
     _TremoloWheel       = false;
@@ -381,11 +381,11 @@ void ENVELOPE_C::Process (float deltaTime)
                     {
                     default:
                         break;
-                    case DAMPER::NORMAL:
+                    case DAMPER_MODE::NORMAL:
                         if ( _Damper )      damper = false;
                         else                damper = true;
                         break;
-                    case DAMPER::INVERT:
+                    case DAMPER_MODE::INVERT:
                         if ( _Damper )      damper = true;
                         else                damper = false;
                         break;

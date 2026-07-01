@@ -34,7 +34,7 @@ enum class ESTATE
 //###########################################
 // Damper modes
 //###########################################
-enum class DAMPER : byte
+enum class DAMPER_MODE : byte
     {
     OFF = 0,
     NORMAL,
@@ -68,7 +68,7 @@ private:
     // User supplied inputs
     bool        _DualUse;           // Dual usage flag  (false = VCA,  true = VCF,other)
     bool        _UseTremolo;        // Flag to enable sofware LFO
-    DAMPER      _DamperMode;        // Mode to utilize string damper
+    DAMPER_MODE _DamperMode;        // Mode to utilize string damper
     float       _Top;               // Fraction of one (percent)
     float       _Bottom;            // Fraction of one (percent)
     float       _SetSustain;        // The settin of sustain level up to one
@@ -110,7 +110,7 @@ public:
     void        SetDualUse          (bool sel);
     void        SetModulationLevel  (float lvl);
     uint16_t    GetPortIO           ()                  { return (_DevicePortIO); }  // Return D/A channel number
-    void        SetDamperMode       (DAMPER mode)       { _DamperMode = mode; }
+    void        SetDamperMode       (DAMPER_MODE mode)  { _DamperMode = mode; }
     void        Expression          (float level)       { _Expression = level; }
     void        Damper              (bool state)        { _Damper = state; }
     void        TremoloMax          (float lvl)         { _TremoloMaxLevel = lvl; }
