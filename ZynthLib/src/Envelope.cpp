@@ -181,6 +181,7 @@ void ENVELOPE_C::SetDualUse (bool sel)
         _UseTremolo = false;
         _Current = _Bottom;
         _LevelDelta = _Top - _Bottom;
+        _Updated = true;
         Update ();
         DBG ("Enable Dual Use");
         }
@@ -188,6 +189,7 @@ void ENVELOPE_C::SetDualUse (bool sel)
         {
         _Current = 0.0f;
         _Bottom  = 0.0f;
+        _Updated = true;
         Update ();
         DBG ("Disable Dual Use");
         }
@@ -281,13 +283,13 @@ void ENVELOPE_C::Process (float deltaTime)
         case ESTATE::START:
             {
             _Current = _Bottom;
-            _Sustain = _SetSustain;             // update runtime sustain with sustain as user set
             _NoDecay = false;
             if ( _DecayTime < 8.0 )
                 _NoDecay = true;
 
             _Timer       = 0.0;
             _Delta       = _Top - _Bottom;
+            _Sustain     = _Bottom + (_SetSustain * _Delta);        // update runtime sustain with sustain as user set
             _PeakLevel   = false;
             _TargetTime  = _AttackTime - TIME_THRESHOLD;
             _State       = ESTATE::ATTACK;
