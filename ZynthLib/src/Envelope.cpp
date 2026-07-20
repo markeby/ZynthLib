@@ -232,11 +232,10 @@ void ENVELOPE_C::SetOverride (uint16_t data)
 //#######################################################################
 void ENVELOPE_C::Update ()
     {
-    float output;
+    float output = _Current;
 
     if ( _Updated )
         {
-        output = _Current;
         if ( _UseTremolo )
             {
             float zf = *_TremoloOuput;

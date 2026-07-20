@@ -147,7 +147,7 @@ void I2C_INTERFACE_C::BusMux (I2C_LOCATION_T& loc)
     if ( loc.Cluster < 0 )
         return;
     DBGMUX ("Selecting cluster %d with slice %d", loc.Cluster, loc.Slice);
-    Wire.beginTransmission (0x70 + loc.Cluster);    // TCA9548A address
+    Wire.beginTransmission (_AddressMux[loc.Cluster]);  // PCA9848 address
     Wire.write (1 << loc.Slice);                    // send byte to select bus
     _LastEndT = Wire.endTransmission();
     if ( _LastEndT )
@@ -160,7 +160,7 @@ void I2C_INTERFACE_C::EndBusMux (I2C_LOCATION_T& loc)
     if ( loc.Cluster < 0 )
         return;
     DBGMUX ("Deselecting cluster %d", loc.Cluster);
-    Wire.beginTransmission (0x70 + loc.Cluster);    // TCA9548A address
+    Wire.beginTransmission (_AddressMux[loc.Cluster]);  // PCA9848 address
     Wire.write (0);                                 // send byte to deselect bus
     _LastEndT = Wire.endTransmission();
     if ( _LastEndT )
@@ -510,7 +510,7 @@ void I2C_INTERFACE_C::Write9536 (I2C_BOARD_T& board)
 // return:  0 = all good
 //         -1 = Total failure
 //         +X = Some interface errors
-int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock, int sda, int scl)
+int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t clock, int sda, int scl)
     {
     String  str;
     uint8_t err = 0;
@@ -524,10 +524,19 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock, int sda,
         Wire.setPins (sda, scl);
     Wire.begin ();
     Wire.setClock (clock);
-//    Wire.setClock (3400000UL);       // clock for 3.4Mhz
-//    Wire.setClock (1700000UL);       // clock for 1.7Mhz
-//    Wire.setClock (800000UL);       // clock for High-speed to Ultra-fast mode
-//    Wire.setClock (400000UL);     // clock for Fast mode
+    switch ( mux )
+        {
+        case COMPONENT::TCA9548:
+            _AddressMux = _AddreassTCA9548;
+            break;
+        case COMPONENT::PCA9848:
+            _AddressMux = _AddreassPCA9848;
+            break;
+        default:
+            printf ("\n  ### Cluster definition (MUX) error\n");
+            return (-1);
+            break;
+        }
 
     for ( int z = 0;  z < _BoardCount;  z++ )      // first, let's check the cluster expanders
         {
@@ -535,7 +544,7 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, uint64_t clock, int sda,
 
         if ( board.Cluster != -1 )
             {
-            Wire.beginTransmission (0x70 + board.Cluster);  // TCA9548A address
+            Wire.beginTransmission (_AddressMux[board.Cluster]);  // PCA9848 address
             Wire.write (0);                                 // send byte to select bus
             _LastEndT = Wire.endTransmission();
             if ( _LastEndT )
