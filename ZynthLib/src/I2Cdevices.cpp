@@ -507,13 +507,14 @@ void I2C_INTERFACE_C::Write9536 (I2C_BOARD_T& board)
 
 //#######################################################################
 //#######################################################################
-// return:  0 = all good
+// return:  n = Number of devices found
 //         -1 = Total failure
-//         +X = Some interface errors
+//          0 = No devices found
 int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t clock, int sda, int scl)
     {
     String  str;
     uint8_t err = 0;
+    int     total = 0;
 
     BuildTables (p_location);
 
@@ -559,7 +560,6 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
         return (-1);
         }
 
-    int  ecount = 0;
     for ( int z = 0;  z < _BoardCount;  z++ )
         {
         I2C_LOCATION_T& board = _pBoard[z].Board;
@@ -567,11 +567,12 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
             printf("\t  >> Init: Cluster %d  Slice %d  Port 0x%X  %s    ", board.Cluster, board.Slice, board.Port,  board.Name);
         if ( ValidateDevice (z) )
             {
-            printf ("\t****\tFailure to access I2C cluster %d  Slice %d  port %X  \"%s\"\n",  board.Cluster, board.Slice, board.Port, board.Name);
-            ecount++;
+            if ( _DebugI2C )
+                printf ("\t****\tFailure to access I2C cluster %d  Slice %d  port %X  \"%s\"\n",  board.Cluster, board.Slice, board.Port, board.Name);
             }
         else
             {
+            ++total;
             switch ( _pBoard[z].Board.Component )
                 {
                 case MCP47FXBX8:
@@ -600,7 +601,7 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
         if ( _DebugI2C )
             printf ("Complete.\n");
         }
-    return (ecount);
+    return (total);
     }
 
 //#######################################################################
