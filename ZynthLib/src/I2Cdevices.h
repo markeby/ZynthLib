@@ -78,12 +78,7 @@ namespace ZYNTH_I2C
             int             DevIndex;
             uint16_t*       pAtoD;
             uint8_t         DtoAain;
-            I2C_DEVICE_S (void) : pBoard (nullptr),
-                pDtoA (nullptr),
-                pAtoD (nullptr),
-                pDigital (nullptr),
-                DevIndex (0)
-            { }
+            I2C_DEVICE_S () : pBoard (nullptr), pDtoA (nullptr), pDigital (nullptr), DevIndex (0), pAtoD (nullptr), DtoAain (0) {}
             } I2C_DEVICE_T;
 
         I2C_BOARD_T*    _pBoard;

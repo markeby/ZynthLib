@@ -512,8 +512,6 @@ void I2C_INTERFACE_C::Write9536 (I2C_BOARD_T& board)
 //          0 = No devices found
 int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t clock, int sda, int scl)
     {
-    String  str;
-    uint8_t err = 0;
     int     total = 0;
 
     BuildTables (p_location);
@@ -537,27 +535,6 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
             printf ("\n  ### Cluster definition (MUX) error\n");
             return (-1);
             break;
-        }
-
-    for ( int z = 0;  z < _BoardCount;  z++ )      // first, let's check the cluster expanders
-        {
-        I2C_LOCATION_T& board = _pBoard[z].Board;
-
-        if ( board.Cluster != -1 )
-            {
-            Wire.beginTransmission (_AddressMux[board.Cluster]);  // PCA9848 address
-            Wire.write (0);                                 // send byte to select bus
-            _LastEndT = Wire.endTransmission();
-            if ( _LastEndT )
-                DBGMUX ("Return for cluster %d is %s", board.Cluster, ErrorStringI2C (_LastEndT));
-            if ( _LastEndT > err )
-                err = _LastEndT;
-            }
-        }
-    if ( err > 0 )
-        {
-        printf ("\n  ### Cluster access error \"%s\".\n", ErrorStringI2C (err));
-        return (-1);
         }
 
     for ( int z = 0;  z < _BoardCount;  z++ )

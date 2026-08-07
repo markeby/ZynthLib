@@ -15,43 +15,40 @@
     _RunTime           = 0;
     _DeltaTimeMicro    = 0.0;
     _DeltaTimeMilli    = 0.0;
-    _DeltaTimeMilliAvg = 0.0;
+    _DeltaTimeMilliAverage = 0.0;
     _LongestTimeMilli  = 0.0;
     _SkipLongest       = 1000;
     _FailAlert         = false;
     }
 
 //#######################################################################
-inline void ZYNTH_TIME_C::TimeDelta (void)
+//#######################################################################
+void ZYNTH_TIME_C::Start (void)
     {
-    static uint64_t strt = 0;       // Starting time for next frame delta calculation
+    static uint64_t strt           = 0;       // Starting time for next frame delta calculation
+    static uint64_t loop_cnt_100hz = 0;
+    static uint64_t icount         = 0;
+    static uint32_t counter0       = 1;
 
     _RunTime = micros ();
     _DeltaTimeMicro = (int)(_RunTime - strt);
     _DeltaTimeMilli = MICRO_TO_MILLI (_DeltaTimeMicro);
-    if ( _DeltaTimeMilliAvg == 0 )
-        _DeltaTimeMilliAvg = _DeltaTimeMilli;
+    if ( _DeltaTimeMilliAverage == 0 )
+        _DeltaTimeMilliAverage = _DeltaTimeMilli;
     else
-        _DeltaTimeMilliAvg = (_DeltaTimeMilliAvg + _DeltaTimeMilli) / 2;
+        _DeltaTimeMilliAverage = (_DeltaTimeMilliAverage + _DeltaTimeMilli) / 2;
     strt = _RunTime;
-    if ( _DeltaTimeMilli > 100 )     // throw out long serial debug outputs
-        return;
-
-    if ( _SkipLongest )        // interval that dumps a lot of content to
+    if ( _DeltaTimeMilli < 100 )     // throw out long serial debug outputs
         {
-        --_SkipLongest;
-        _LongestTimeMilli = 0.0;
-        return;                      //   debug output needs to be ignored
+        if ( _SkipLongest )        // interval that dumps a lot of content to
+            {
+            --_SkipLongest;
+            _LongestTimeMilli = 0.0;
+            }
+        else if ( _DeltaTimeMilli > _LongestTimeMilli )
+            _LongestTimeMilli = _DeltaTimeMilli;
         }
-    if ( _DeltaTimeMilli > _LongestTimeMilli )
-        _LongestTimeMilli = _DeltaTimeMilli;
-    }
 
-//#######################################################################
-inline bool ZYNTH_TIME_C::TickTime (void)
-    {
-    static uint64_t loop_cnt_100hz = 0;
-    static uint64_t icount = 0;
 
     loop_cnt_100hz += _DeltaTimeMicro;
     icount++;
@@ -60,39 +57,31 @@ inline bool ZYNTH_TIME_C::TickTime (void)
         {
         loop_cnt_100hz = 0;
         icount = 0;
-        return (true);
+
+        if ( --counter0 == 0 )
+            {
+            digitalWrite (HEARTBEAT_PIN, HIGH);     // LED on
+            counter0 = 100;
+            }
+        if ( _FailAlert )
+            {
+            if ( counter0 % 25 )
+                digitalWrite (HEARTBEAT_PIN, LOW);  // LED off
+            else
+                digitalWrite (HEARTBEAT_PIN, HIGH); // LED on
+            }
+        if ( counter0 == 98 )
+            digitalWrite (HEARTBEAT_PIN, LOW);      // LED off
         }
-    return (false);
     }
 
 //#######################################################################
-inline void ZYNTH_TIME_C::TickState (void)
+void ZYNTH_TIME_C::End (void)
     {
-    static uint32_t counter0 = 1;
+    _EndTime = micros ();
+    float   zf = _EndTime - _RunTime;
 
-    if ( --counter0 == 0 )
-        {
-        digitalWrite (HEARTBEAT_PIN, HIGH);     // LED on
-        counter0 = 100;
-        }
-    if ( _FailAlert )
-        {
-        if ( counter0 % 25 )
-            digitalWrite (HEARTBEAT_PIN, LOW);  // LED off
-        else
-            digitalWrite (HEARTBEAT_PIN, HIGH); // LED on
-        }
-    if ( counter0 == 98 )
-        digitalWrite (HEARTBEAT_PIN, LOW);      // LED off
-    }
-
-//#######################################################################
-//#######################################################################
-void ZYNTH_TIME_C::Loop (void)
-    {
-    TimeDelta ();
-    if ( TickTime () )
-        TickState ();
+    _DeltaExecutionAverage = (_DeltaExecutionAverage + zf) * 0.0005f;
     }
 
 //#######################################################################
