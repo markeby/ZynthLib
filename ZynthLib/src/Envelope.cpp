@@ -57,7 +57,7 @@ void ENV_GENERATOR_C::Loop ()
         {
         if ( it->IsActive () )      // if we ain't active then we don't need to run this.
             {
-            it->Process (ZyTime.DeltaTimeMS ());
+            it->Process ();
             it->Update ();
             }
         }
@@ -88,6 +88,8 @@ ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t de
     _TremoloWheel       = false;
     _TremoloWheelLevel  = 0.0f;
     _LevelDelta         = 0;
+    _LoopTime           = 0.0f;
+    _Looper             = false;
     Clear ();
     }
 
@@ -131,6 +133,16 @@ void ENVELOPE_C::SetTime (ESTATE state, float time)
             break;
         }
     DBG ("%s - Time setting > %f mSec", stateLabel[(int)state], time );
+    }
+
+//#######################################################################
+void ENVELOPE_C::SetLooper (float time)
+    {
+    _LoopTime = time;
+    if ( time = 0.0f )
+        _Looper = false;
+    else
+        _Looper = true;
     }
 
 //#######################################################################
@@ -210,6 +222,7 @@ void ENVELOPE_C::Start ()
         return;
     _Active = true;
     _State = ESTATE::START;
+    _LoopTimer = _LoopTime;
     _UseCount++;
     DBG ("Starting");
     }
@@ -257,7 +270,7 @@ void ENVELOPE_C::Update ()
 
 //#######################################################################
 //#######################################################################
-void ENVELOPE_C::Process (float deltaTime)
+void ENVELOPE_C::Process ()
     {
     if ( _UseTremolo )
         _Updated = true;
@@ -272,6 +285,13 @@ void ENVELOPE_C::Process (float deltaTime)
         _Delta   = _Current - _Bottom;
         DBG ("%f mSec from level %f to %f", _ReleaseTime, _Current, _Bottom);
         return;
+        }
+
+    if ( _Looper )
+        {
+        _LoopTimer -= ZyTime.DeltaTimeMS ();
+        if ( _LoopTimer < 0.0f )
+            ReStart ();
         }
 
     switch ( _State )
@@ -300,7 +320,7 @@ void ENVELOPE_C::Process (float deltaTime)
         //***************************************
         case ESTATE::ATTACK:
             {
-            _Timer += deltaTime;
+            _Timer += ZyTime.DeltaTimeMS ();
             if ( _Timer < _TargetTime )
                 {
                 _Current  = _Bottom + ((_Timer / _TargetTime) * _Delta);
@@ -332,7 +352,7 @@ void ENVELOPE_C::Process (float deltaTime)
         //***************************************
         case ESTATE::DECAY:
             {
-            _Timer -= deltaTime;
+            _Timer -= ZyTime.DeltaTimeMS ();
             if ( _Timer > 10 )
                 {
                 _Current = _Sustain + ((_Timer / _DecayTime) * _Delta);
@@ -369,7 +389,7 @@ void ENVELOPE_C::Process (float deltaTime)
         case ESTATE::RELEASE:
             {
             _TriggerEnd = false;
-            _Timer  -= deltaTime;
+            _Timer  -= ZyTime.DeltaTimeMS ();
             if ( _Timer > 20)
                 {
                 _Current = _Bottom + ((_Timer / _ReleaseTime) * _Delta);

@@ -59,6 +59,7 @@ private:
     byte&       _UseCount;          // increment started and decriment as idle
     ESTATE      _State;             // Current state of this mixer channel
     float       _LevelDelta;        // delta between base and top level setting for use with modulation generation
+    float       _LoopTimer;         // Count doun timer for loop retrigger
 
     bool        _Muted;             // Do not respond to Start directive
     bool        _Updated;           // Flag indicating update output
@@ -81,6 +82,8 @@ private:
     float       _TremoloWheelLevel; // Mod wheel position for tremelo level
     float       _TremoloWheel;      // Use mod wheel
     bool        _TremoloInvert;     // invert tremolo wave
+    float       _LoopTime;          // Loop envelope trigger interval
+    bool        _Looper;            // Loop time on envelope is active
 
     // runtime calculations
     float       _Delta;             // Distance for the current state
@@ -100,10 +103,11 @@ public:
                 ENVELOPE_C          (uint8_t index, String name, uint16_t device, uint16_t device_rang, uint8_t& usecount);
     void        Clear               ();
     void        Mute                (bool state);
-    void        Process             (float deltaTime);
+    void        Process             ();
     void        SetOverride         (uint16_t data);
     void        Update              ();
     void        Start               ();
+    void        ReStart             ()                  { _State = ESTATE::START; _LoopTimer = _LoopTime; }
     void        End                 ();
     void        SetTime             (ESTATE state, float time);
     void        SetLevel            (ESTATE state, float percent);
@@ -118,6 +122,7 @@ public:
     void        TremoloWheel        (bool state)        { _TremoloWheel = state;  _TremoloWheelLevel = 0.0f; }
     void        TremoloWheelLevel   (float val)         { _TremoloWheelLevel = val; }
     void        TremoloInvert       (bool state)        { _TremoloInvert = state; }
+    void        SetLooper           (float time);
 
     int IsActive (void)
         { return (_Active); }
