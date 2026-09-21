@@ -82,6 +82,7 @@ public:
 
     void SkipLongest (int count)
         {
+        _LongestTimeMilli = 0.0f;
         _SkipLongest = count;
         }
 

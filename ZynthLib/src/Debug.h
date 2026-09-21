@@ -28,13 +28,8 @@ void  BootDebug      (void);
 void  DebugDisable   (bool state);
 
 #define PAUSE    {if (!__Debug_Off__) printf("--- %s:%d\n",__FILE_NAME__,__LINE__);while(!Serial.available ()) continue;char s=Serial.read();}
-#define DbgD(d)  {if (!__Debug_Off__) printf("==> %s:%d %s = %d\n",__FILE_NAME__,__LINE__, #d, d);}
-#define DbgDn(d) {if (!__Debug_Off__) printf("==> %s:%d %s = %d\n\n",__FILE_NAME__,__LINE__, #d, d);}
-#define DbgX(x)  {if (!__Debug_Off__) printf("==> %s:%d %s = 0x%X\n",__FILE_NAME__,__LINE__, #x, x);}
-#define DbgF(f)  {if (!__Debug_Off__) printf("==> %s:%d %s = %f\n",__FILE_NAME__,__LINE__, #f, f);}
-#define DbgS(s)  {if (!__Debug_Off__) printf("==> %s:%d %s = %s\n",__FILE_NAME__,__LINE__, #s, s);}
-#define DbgSt(s) {if (!__Debug_Off__) printf("==> %s:%d %s = %s\n",__FILE_NAME__,__LINE__, #s, s.c_str());}
+
+#define Dbg(x)  {if (!__Debug_Off__) Serial.printf("==> %s:%d %s = ",__FILE_NAME__,__LINE__, #x); Serial.println(x);}
 
 #define DbgN    {printf("\n");}
 
-#define Dbg(x)  {if (!__Debug_Off__) Serial.printf("==> %s:%d %s = ",__FILE_NAME__,__LINE__, #x); Serial.println(x);}

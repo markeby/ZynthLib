@@ -109,7 +109,7 @@ namespace ZYNTH_I2C
         void     BuildTables        (I2C_LOCATION_T* plocation);
         char*    ErrorString        (int err);
         void     BusMux             (I2C_LOCATION_T& loc);
-        void     EndBusMux          (I2C_LOCATION_T& loc);
+        void     EndBusMux          ();
 
         void     Write              (I2C_LOCATION_T& loc, uint8_t* buff, uint8_t length);
         void     WriteByte          (uint8_t port, uint8_t data);

@@ -44,6 +44,8 @@ static const char* LabelError = "I2C";
     _CallbackAtoD     = nullptr;
     _pBoard           = nullptr;
     _AtoD_loopDevice  = 0;
+    _CurrentCluster   = -1;
+    _CurrentSlice     = -1;
     }
 
 //#######################################################################
@@ -174,27 +176,38 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
 //#######################################################################
 void I2C_INTERFACE_C::BusMux (I2C_LOCATION_T& loc)
     {
-    if ( loc.Cluster < 0 )
-        return;
-    DBGMUX ("Selecting cluster %d with slice %d", loc.Cluster, loc.Slice);
-    Wire.beginTransmission (_AddressMux[loc.Cluster]);  // PCA9848 address
-    Wire.write (1 << loc.Slice);                    // send byte to select bus
-    _LastEndT = Wire.endTransmission();
-    if ( _LastEndT )
-        ERROR ("BusMux cluster %d select %d with error: %s", loc.Cluster, loc.Slice, ErrorStringI2C (_LastEndT));
+    if ( _CurrentCluster != loc.Cluster )
+        {
+        EndBusMux ();
+        _CurrentSlice = -1;
+        if ( loc.Cluster < 0 )
+            return;
+        }
+    if ( _CurrentSlice != loc.Slice )
+        {
+        DBGMUX ("Selecting cluster %d with slice %d", loc.Cluster, loc.Slice);
+        Wire.beginTransmission (_AddressMux[loc.Cluster]);  // PCA9848 address
+        Wire.write (1 << loc.Slice);                    // send byte to select bus
+        _LastEndT = Wire.endTransmission();
+        _CurrentCluster = loc.Cluster;
+        _CurrentSlice = loc.Slice;
+        if ( _LastEndT )
+            ERROR ("BusMux cluster %d select %d with error: %s", loc.Cluster, loc.Slice, ErrorStringI2C (_LastEndT));
+        }
     }
 
 //#######################################################################
-void I2C_INTERFACE_C::EndBusMux (I2C_LOCATION_T& loc)
+void I2C_INTERFACE_C::EndBusMux ()
     {
-    if ( loc.Cluster < 0 )
+    if ( _CurrentCluster < 0 )
         return;
-    DBGMUX ("Deselecting cluster %d", loc.Cluster);
-    Wire.beginTransmission (_AddressMux[loc.Cluster]);  // PCA9848 address
+    DBGMUX ("Deselecting cluster %d", _CurrentCluster);
+    Wire.beginTransmission (_AddressMux[_CurrentCluster]);  // PCA9848 address
     Wire.write (0);                                 // send byte to deselect bus
     _LastEndT = Wire.endTransmission();
     if ( _LastEndT )
-        ERROR ("Ending cluster %d  slice: %d   error: %s", loc.Cluster, loc.Slice, ErrorStringI2C (_LastEndT));
+        ERROR ("Ending cluster %d  error: %s", _CurrentCluster, ErrorStringI2C (_LastEndT));
+    _CurrentCluster = -1;
     }
 
 //#######################################################################
@@ -211,7 +224,6 @@ bool I2C_INTERFACE_C::ValidateDevice (ushort board)
     else
         DBGERROR ("Validation error on port %#02.2X.  %s", brd.Board.Port, ErrorStringI2C (_LastEndT));
 
-    EndBusMux (brd.Board);
     return (!brd.Valid);
     }
 
@@ -244,7 +256,6 @@ void I2C_INTERFACE_C::Write (I2C_LOCATION_T &loc, uint8_t* buff, uint8_t length)
     Wire.beginTransmission (loc.Port);
     Wire.write (buff, length);
     _LastEndT = Wire.endTransmission (true);
-    EndBusMux (loc);
     if ( _LastEndT )
         {
         ERROR ("Result: %s   cluster: %d   slice: %d   port: 0x%#02.2X   buff[0]: 0x%#02.2X   length: %d", ErrorStringI2C (_LastEndT), loc.Cluster, loc.Slice, loc.Port, *buff, length);
@@ -311,7 +322,6 @@ void I2C_INTERFACE_C::Init47FXBX8 (I2C_LOCATION_T &loc)
     // reset all D/A to zero
     for ( int z = 0;  z < 8;  z++ )
         WriteRegisterWord (loc.Port, z << 3, 0x0000);
-    EndBusMux (loc);
     }
 
 //#######################################################################
@@ -333,8 +343,6 @@ void I2C_INTERFACE_C::Init4728 (I2C_LOCATION_T &loc)
     Wire.beginTransmission (loc.Port);      // reset all D/A to zero
     Wire.write (d, 8);
     _LastEndT = Wire.endTransmission (true);
-
-    EndBusMux (loc);
     }
 
 //#######################################################################
@@ -346,8 +354,6 @@ void I2C_INTERFACE_C::Init857x (I2C_LOCATION_T &loc)
     Wire.beginTransmission (loc.Port);      // reset all D/A to zero
     Wire.write (d, 2);
     _LastEndT = Wire.endTransmission (true);
-
-    EndBusMux (loc);
     }
 
 //#######################################################################
@@ -361,7 +367,6 @@ void I2C_INTERFACE_C::Init23008 (I2C_LOCATION_T &loc)
     BusMux (loc);
     for ( int z = 0;  z < 4;  z++ )
         WriteRegisterByte (loc.Port, d[z][0], d[z][1]);
-    EndBusMux (loc);
     }
 
 //#######################################################################
@@ -374,7 +379,6 @@ void I2C_INTERFACE_C::Init9536 (I2C_LOCATION_T &loc)
     BusMux (loc);
     for ( int z = 0;  z < 2;  z++ )
         WriteRegisterByte (loc.Port, d[z][0], d[z][1]);
-    EndBusMux (loc);
     }
 
 //#######################################################################
@@ -384,7 +388,6 @@ void I2C_INTERFACE_C::Init1115 (I2C_LOCATION_T &loc)
     WriteRegisterWord (loc.Port, ADS1115_CONFIG_REG_ADDR, ADS1115_CONFIG_REG_DEF & ~(1 << ADS1115_OS_FLAG_POS));
     WriteRegisterWord (loc.Port, ADS1115_LOW_TRESH_REG_ADDR, ADS1115_LOW_TRESH_REG_DEF);
     WriteRegisterWord (loc.Port, ADS1115_HIGH_TRESH_REG_ADDR, ADS1115_HIGH_TRESH_REG_DEF);
-    EndBusMux (loc);
     _AtoD_loopDevice = 0;
     }
 
@@ -576,7 +579,6 @@ void I2C_INTERFACE_C::ReadPageEeprom (I2C_LOCATION_T& loc, int paddress, uint8_t
             ERROR ("Result: Cannot retun data from address 0x%X   cluster: %d   slice: %d   port: 0x%#02.2X", paddress, loc.Cluster, loc.Slice, loc.Port);
             }
         }
-    EndBusMux (loc);
     }
 
 //#######################################################################
@@ -593,7 +595,6 @@ void I2C_INTERFACE_C::WritePageEeprom (I2C_LOCATION_T& loc, uint8_t* source, int
         {
         ERROR ("Result: Write failure %s   port: %#02.2X   EEPROM address: 0x%X", ErrorStringI2C (_LastEndT), loc.Port, paddress);
         }
-    EndBusMux (loc);
     delay (10);              // we should give a little time to complete writing the page
     }
 
@@ -833,7 +834,6 @@ void I2C_INTERFACE_C::StartAtoD (short device)
         {
         BusMux (loc);
         Start1115 (dev);
-        EndBusMux (loc);
         _AtoD_loopDevice = device;
         }
     }
@@ -854,7 +854,6 @@ void I2C_INTERFACE_C::Loop ()
             val = ReadRegister16 (loc.Port, ADS1115_CONVERSION_REG_ADDR);
             _CallbackAtoD (val);
             }
-        EndBusMux (loc);
         }
     }
 
