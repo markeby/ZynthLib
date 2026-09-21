@@ -37,4 +37,4 @@ void  DebugDisable   (bool state);
 
 #define DbgN    {printf("\n");}
 
-
+#define Dbg(x)  {if (!__Debug_Off__) Serial.printf("==> %s:%d %s = ",__FILE_NAME__,__LINE__, #x); Serial.println(x);}

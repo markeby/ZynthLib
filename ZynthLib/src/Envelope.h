@@ -61,7 +61,6 @@ private:
     float       _LevelDelta;        // delta between base and top level setting for use with modulation generation
     float       _LoopTimer;         // Count doun timer for loop retrigger
 
-    bool        _Muted;             // Do not respond to Start directive
     bool        _Updated;           // Flag indicating update output
     bool        _PeakLevel;         // Flag indicating sustain and peak are the same
     float*      _TremoloOuput;
@@ -76,7 +75,6 @@ private:
     float       _AttackTime;        // Attack time in uSec
     float       _DecayTime;         // Decay time to sustatin level in uSec
     float       _ReleaseTime;       // How long to end back at base level in uSec
-    float       _Expression;        // Final volume multiplier
     bool        _Damper;            // state of damper pedal
     float       _TremoloMaxLevel;   // Maximum level tremolo can effect (0 to 1)
     float       _TremoloWheelLevel; // Mod wheel position for tremelo level
@@ -102,7 +100,6 @@ private:
 public:
                 ENVELOPE_C          (uint8_t index, String name, uint16_t device, uint16_t device_rang, uint8_t& usecount);
     void        Clear               ();
-    void        Mute                (bool state);
     void        Process             ();
     void        SetOverride         (uint16_t data);
     void        Update              ();
@@ -115,7 +112,6 @@ public:
     void        SetModulationLevel  (float lvl);
     uint16_t    GetPortIO           ()                  { return (_DevicePortIO); }  // Return D/A channel number
     void        SetDamperMode       (DAMPER_MODE mode)  { _DamperMode = mode; }
-    void        Expression          (float level)       { _Expression = level; }
     void        Damper              (bool state)        { _Damper = state; }
     void        TremoloMax          (float lvl)         { _TremoloMaxLevel = lvl; }
     void        TremoloPointer      (float* pf)         { _TremoloOuput = pf; _UseTremolo = ( pf != nullptr ) ? true : false; }

@@ -54,10 +54,9 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
     for ( _BoardCount = 0;  zploc->Component != NULL_COMP;  _BoardCount++, zploc++ );
     if ( _BoardCount == 0 )     // if no device board specified
         return;
+    _pBoard = new (I2C_BOARD_T[_BoardCount]);
 
-    _pBoard           = new I2C_BOARD_T[_BoardCount];
     _DeviceCount      = 0;
-
     for ( int z = 0;  z < _BoardCount;  z++ )
         {
         I2C_LOCATION_T& loc = plocation[z];
@@ -67,6 +66,7 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
         brd.NumberDtoA      = 0;
         brd.NumberAtoD      = 0;
         brd.NumberDigital   = 0;
+        brd.NumberMemBlocks = 0;
 
         switch ( loc.Component )
             {
@@ -89,12 +89,16 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
             case TCA9536:
                 brd.NumberDigital = 4;
                 break;
+            case AT24C08osc:
+                brd.NumberMemBlocks = 4;
+                break;
             default:
                 break;
             }
         _DeviceCount += brd.NumberDtoA;
         _DeviceCount += brd.NumberAtoD;
         _DeviceCount += brd.NumberDigital;
+        _DeviceCount += brd.NumberMemBlocks;
         }
 
     _pDevice = new I2C_DEVICE_T[_DeviceCount];
@@ -112,7 +116,7 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
                 {
                 _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
                 _pDevice[at_dev].pDtoA    = &(brd.DtoA[zd]);
-                _pDevice[at_dev].DevIndex = zd;
+                _pDevice[at_dev].Index = zd;
                 }
             }
 
@@ -123,7 +127,7 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
                 {
                 _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
                 _pDevice[at_dev].pDigital = &(brd.DataDigital);
-                _pDevice[at_dev].DevIndex = zd;
+                _pDevice[at_dev].Index = zd;
                 }
             }
 
@@ -135,7 +139,33 @@ void I2C_INTERFACE_C::BuildTables (I2C_LOCATION_T* plocation)
                 _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
                 _pDevice[at_dev].pAtoD    = &(brd.AtoD[zd]);
                 _pDevice[at_dev].DtoAain  = DecodeIndex1115 (zd);
-                _pDevice[at_dev].DevIndex = zd;
+                _pDevice[at_dev].Index = zd;
+                }
+            }
+        else        // configure for eeprom
+            {
+            for (int zd = 0;  zd < 4;  zd++, at_dev++)    // take up 4 slots to keep everything neatly aligned in the user table.
+                {
+                _pDevice[at_dev].pBoard   = &(_pBoard[zb]);
+                switch ( zd )
+                    {
+                    default:    // case 0
+                        _pDevice[at_dev].Index = 0x000;    // signature #1
+                        _pDevice[at_dev].Size  = 1;        // number of 16 byte pages (16 bytes)
+                        break;
+                    case 1:
+                        _pDevice[at_dev].Index = 0x100;     // first oscillator tuning table for 256 bytes
+                        _pDevice[at_dev].Size  = 16;        // number of 16 byte pages (16 bytes)
+                        break;
+                    case 2:
+                        _pDevice[at_dev].Index = 0x200;     // signature #2
+                        _pDevice[at_dev].Size  = 1;         // number of 16 byte pages (256 bytes)
+                        break;
+                    case 3:
+                        _pDevice[at_dev].Index = 0x300;     // second oscillator tuning table  for 256 bytes
+                        _pDevice[at_dev].Size  = 16;        // number of 16 byte pages (256 bytes)
+                        break;
+                    }
                 }
             }
         }
@@ -408,6 +438,25 @@ void I2C_INTERFACE_C::Write47FXBX8 (I2C_BOARD_T& board)
     }
 
 //#######################################################################
+void I2C_INTERFACE_C::EepromClear47FXBX8 (I2C_BOARD_T& board)
+    {
+    uint8_t buf[4];
+    I2C_LOCATION_T& loc =  board.Board;
+
+    if ( ! board.Valid )
+        return;
+
+    for ( int z = 0;  z < 8;  z++ )
+        {
+        buf[0] = (z + 0x10) << 3;
+        buf[1] = 0;
+        buf[2] = 0;
+        Write (loc, buf, 3);
+        delay (20);     // only 16 mSec needed but let's be sure.
+        }
+    }
+
+//#######################################################################
 void I2C_INTERFACE_C::Write4728 (I2C_BOARD_T& board)
     {
     uint8_t buf[8];
@@ -491,7 +540,7 @@ void I2C_INTERFACE_C::Write9536 (I2C_BOARD_T& board)
     if ( _DebugI2C )
         {
         for (uint8_t z;  z < board.NumberDigital;  z++)
-            str += ( ((board.BitWord >> z) & 1) ) ? " 1" : " 0";
+            str += ( ((board.BitWord >> z) & 3) ) ? " 1" : " 0";
         }
     DBGDIG ("%d:%d:%#3.3x%c write %s  %s",
             loc.Cluster, loc.Slice, loc.Port,
@@ -503,6 +552,49 @@ void I2C_INTERFACE_C::Write9536 (I2C_BOARD_T& board)
     static uint8_t d[2] = {  0x01, 0xff };
     d[1] = ~board.ByteData[0];
     Write (loc, d, 2);
+    }
+
+//#######################################################################
+void I2C_INTERFACE_C::ReadPageEeprom (I2C_LOCATION_T& loc, int paddress, uint8_t* dest)
+    {
+    BusMux (loc);
+    WriteByte (loc.Port | ((paddress >> 8) & 3), paddress & 0xFF);
+
+    if ( _LastEndT == 0 )
+        {
+        int count = Wire.requestFrom (loc.Port, 16);
+        if ( Wire.available () )
+            {
+            for ( int z = 0;  z < count;  z++ )
+                {
+                const int data = Wire.read ();
+                dest[z] = data & 0xFF;
+                }
+            }
+        else
+            {
+            ERROR ("Result: Cannot retun data from address 0x%X   cluster: %d   slice: %d   port: 0x%#02.2X", paddress, loc.Cluster, loc.Slice, loc.Port);
+            }
+        }
+    EndBusMux (loc);
+    }
+
+//#######################################################################
+void I2C_INTERFACE_C::WritePageEeprom (I2C_LOCATION_T& loc, uint8_t* source, int paddress)
+    {
+    BusMux (loc);
+
+    Wire.beginTransmission (loc.Port | ((paddress >> 8) & 3));
+    Wire.write (paddress & 0xFF);
+    int count = Wire.write (source, 16);
+    _LastEndT = Wire.endTransmission (true);
+
+    if ( _LastEndT )
+        {
+        ERROR ("Result: Write failure %s   port: %#02.2X   EEPROM address: 0x%X", ErrorStringI2C (_LastEndT), loc.Port, paddress);
+        }
+    EndBusMux (loc);
+    delay (10);              // we should give a little time to complete writing the page
     }
 
 //#######################################################################
@@ -544,8 +636,11 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
             printf("\t  >> Init: Cluster %d  Slice %d  Port 0x%X  %s    ", board.Cluster, board.Slice, board.Port,  board.Name);
         if ( ValidateDevice (z) )
             {
-            if ( _DebugI2C )
+            if ( board.PackID == 0 )
+                {
                 printf ("\t****\tFailure to access I2C cluster %d  Slice %d  port %X  \"%s\"\n",  board.Cluster, board.Slice, board.Port, board.Name);
+                return (-1);
+                }
             }
         else
             {
@@ -570,6 +665,8 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
                     break;
                 case TCA9536:
                     Init9536 (board);
+                    break;
+                case AT24C08osc:
                     break;
                 default:
                     break;
@@ -617,6 +714,15 @@ bool I2C_INTERFACE_C::IsDigitalOut (short device)
     }
 
 //#######################################################################
+bool I2C_INTERFACE_C::IsMem (short device)
+    {
+    I2C_DEVICE_T& dev = _pDevice[device];
+    if ( dev.pBoard->Valid && (dev.Size > 0) )
+        return true;
+    return false;
+    }
+
+//#######################################################################
 void I2C_INTERFACE_C::D2Analog (short device, ushort value)
     {
     I2C_DEVICE_T& dev = _pDevice[device];
@@ -624,7 +730,7 @@ void I2C_INTERFACE_C::D2Analog (short device, ushort value)
     if ( brd->Valid )
         {
         *(dev.pDtoA) = value;
-        bitSet (brd->NewDataMask, dev.DevIndex);      // Bit for this channel is set to identify update required
+        bitSet (brd->NewDataMask, dev.Index);      // Bit for this channel is set to identify update required
         }
     }
 
@@ -636,11 +742,22 @@ void I2C_INTERFACE_C::DigitalOut (short device, bool value)
 
     if ( brd->Valid )
         {
-        if ( bitRead (*(dev.pDigital),  dev.DevIndex) != value )
+        if ( bitRead (*(dev.pDigital),  dev.Index) != value )
             {
-            bitWrite (*(dev.pDigital), dev.DevIndex, value);
-            bitSet (brd->NewDataMask, dev.DevIndex);      // Bit for this channel is set to identify update required
+            bitWrite (*(dev.pDigital), dev.Index, value);
+            bitSet (brd->NewDataMask, dev.Index);      // Bit for this channel is set to identify update required
             }
+        }
+    }
+
+//#######################################################################
+void I2C_INTERFACE_C::InitialDtoAeeprom ()
+    {
+    for ( int z = 0;  z < _BoardCount;  z++ )
+        {
+        I2C_BOARD_T& brd = _pBoard[z];
+        if ( brd.Board.Component == MCP47FXBX8 )
+            EepromClear47FXBX8 (brd);
         }
     }
 
@@ -681,15 +798,44 @@ void I2C_INTERFACE_C::Update ()
     }
 
 //#######################################################################
+void I2C_INTERFACE_C::ReadEeprom (short device, uint8_t* dest)
+    {
+    I2C_DEVICE_T&   dev = _pDevice[device];
+    I2C_LOCATION_T& loc = dev.pBoard->Board;
+
+    if ( loc.Component == AT24C08osc )
+        {
+        for (int z = 0;  z < dev.Size;  ++z)
+            ReadPageEeprom  (loc, dev.Index + (z * 16), dest + (z * 16));
+        }
+    }
+
+//#######################################################################
+void I2C_INTERFACE_C::WriteEeprom (short device, uint8_t* source)
+    {
+    I2C_DEVICE_T&   dev = _pDevice[device];
+    I2C_LOCATION_T& loc = dev.pBoard->Board;
+
+    if ( loc.Component == AT24C08osc )
+        {
+        for (int z = 0;  z < dev.Size;  ++z )
+            WritePageEeprom  (loc, source + (z * 16), dev.Index + (z * 16));
+        }
+    }
+
+//#######################################################################
 void I2C_INTERFACE_C::StartAtoD (short device)
     {
     I2C_DEVICE_T& dev = _pDevice[device];
     I2C_LOCATION_T& loc = dev.pBoard->Board;
 
-    BusMux (loc);
-    Start1115 (dev);
-    EndBusMux (loc);
-    _AtoD_loopDevice = device;
+    if ( loc.Component == ADS1115 )
+        {
+        BusMux (loc);
+        Start1115 (dev);
+        EndBusMux (loc);
+        _AtoD_loopDevice = device;
+        }
     }
 
 //#######################################################################

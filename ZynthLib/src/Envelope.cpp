@@ -71,7 +71,6 @@ ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t de
     _Name               = name;
     _DevicePortIO       = device;
     _Index              = index + 1;
-    _Muted              = false;
     _DualUse            = false;
     _Current            = 0;
     _Top                = 0;
@@ -83,7 +82,6 @@ ENVELOPE_C::ENVELOPE_C (uint8_t index, String name, uint16_t device, uint16_t de
     _Active             = 0;
     _UseTremolo         = false;
     _DamperMode         = DAMPER_MODE::OFF;
-    _Expression         = 1.0;
     _DeviceRange        = device_range;
     _TremoloWheel       = false;
     _TremoloWheelLevel  = 0.0f;
@@ -106,16 +104,6 @@ void ENVELOPE_C::Clear ()
     DBG("clearing");
     Update ();
     }
-
-//#######################################################################
-void ENVELOPE_C::Mute (bool state)
-    {
-    _Muted = state;
-    DBG ("Mute set to %d", state);
-    if ( state )
-        Clear ();
-    }
-
 
 //#######################################################################
 void ENVELOPE_C::SetTime (ESTATE state, float time)
@@ -218,7 +206,7 @@ void ENVELOPE_C::SetModulationLevel (float lvl)
 //#######################################################################
 void ENVELOPE_C::Start ()
     {
-    if ( _Active || (_Top == 0.0 || _Muted ) )
+    if ( _Active || (_Top == 0.0) )
         return;
     _Active = true;
     _State = ESTATE::START;
@@ -261,7 +249,7 @@ void ENVELOPE_C::Update ()
                 }
             output *= (1.0 - 0.5 * (zf + 1.0) * zl);
             }
-        int16_t z = (int16_t)(_DeviceRange * output * _Expression);    //Calculate final D to A with output level with expression and tremolo
+        int16_t z = (int16_t)(_DeviceRange * output);    //Calculate final D to A with output level with tremolo
         DBG ("Updating port %d with %d", _DevicePortIO, z)
         I2cDevices.D2Analog (_DevicePortIO, z);;
         _Updated = false;

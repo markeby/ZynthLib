@@ -17,6 +17,11 @@ namespace ZYNTH_I2C
     #define I2C_SPEED_1700  1700000UL       // clock for 1.7Mhz
     #define I2C_SPEED_3400  3400000UL       // clock for 3.4Mhz
 
+    //#######################################################################
+    #define I2C_EEPROM_SIZE 1024
+    #define I2C_EEPROM_PAGE   16
+
+    //#######################################################################
     enum COMPONENT
         {
         NULL_COMP = 0,
@@ -29,6 +34,7 @@ namespace ZYNTH_I2C
         PCF8575,        // 16 bit digital out without pullups
         MCP23008,       // 8 bit digital out with pullups
         TCA9536,        // 4 bit digital out with pullups
+        AT24C08osc,     // 1k EEPROM 16 bytes per page assigned on the voice generator to store tuning tables
         };
 
     //#######################################################################
@@ -38,6 +44,7 @@ namespace ZYNTH_I2C
         int         Slice;          // Mux output select
         int         Port;           // I2C address of device
         COMPONENT   Component;      // component type from enum
+        int         PackID;         // Non zero values are grouped.  Group zero must exist.  All others are optional.
         const char* Name;
         } I2C_LOCATION_T;
 
@@ -46,7 +53,7 @@ namespace ZYNTH_I2C
     //#######################################################################
     class I2C_INTERFACE_C
         {
-         private:
+    private:
 
         typedef struct
             {
@@ -56,6 +63,7 @@ namespace ZYNTH_I2C
             int             NumberDtoA;         // Number of digital to analog channels
             int             NumberAtoD;         // Number of analog to digital channels
             int             NumberDigital;      // Number of digital I/O channels
+            int             NumberMemBlocks;    // Number of blocks of memory for reading and writing.  Block defined in device struct
             union
                 {
                 union
@@ -75,10 +83,11 @@ namespace ZYNTH_I2C
             I2C_BOARD_T*    pBoard;
             uint16_t*       pDtoA;
             uint16_t*       pDigital;
-            int             DevIndex;
+            int             Index;
+            int             Size;
             uint16_t*       pAtoD;
             uint8_t         DtoAain;
-            I2C_DEVICE_S () : pBoard (nullptr), pDtoA (nullptr), pDigital (nullptr), DevIndex (0), pAtoD (nullptr), DtoAain (0) {}
+            I2C_DEVICE_S () : pBoard (nullptr), pDtoA (nullptr), pDigital (nullptr), Index (0), pAtoD (nullptr), DtoAain (0) {}
             } I2C_DEVICE_T;
 
         I2C_BOARD_T*    _pBoard;
@@ -87,11 +96,15 @@ namespace ZYNTH_I2C
         int             _BoardCount;
         ushort          _AtoD_loopDevice;
         CallbackUShort  _CallbackAtoD;
+        int             _CurrentCluster;
+        int             _CurrentSlice;
         uint8_t         _LastEndT;
         bool            _DebugI2C;
         const uint8_t   _AddreassTCA9548[4] = { 0x70, 0x71, 0x72, 0x73 };
         const uint8_t   _AddreassPCA9848[4] = { 0x71, 0x73, 0x75, 0x77 };
         const uint8_t*  _AddressMux;
+
+        char            _Signature[20];     // buffer to hold signature bytes
 
         void     BuildTables        (I2C_LOCATION_T* plocation);
         char*    ErrorString        (int err);
@@ -109,16 +122,19 @@ namespace ZYNTH_I2C
         void     Init23008          (I2C_LOCATION_T& loc);
         void     Init9536           (I2C_LOCATION_T& loc);
         void     Write47FXBX8       (I2C_BOARD_T& board);
+        void     EepromClear47FXBX8 (I2C_BOARD_T& board);
         void     Write4728          (I2C_BOARD_T& board);
         void     Write857x          (I2C_BOARD_T& board);
         void     Write23008         (I2C_BOARD_T& board);
         void     Write9536          (I2C_BOARD_T& board);
+        void     ReadPageEeprom     (I2C_LOCATION_T& loc, int paddress, uint8_t* dest);
+        void     WritePageEeprom    (I2C_LOCATION_T& loc, uint8_t* source, int paddress);
         uint8_t  DecodeIndex1115    (uint8_t index);
         void     Init1115           (I2C_LOCATION_T& loc);
         void     Start1115          (I2C_DEVICE_T& device);
         bool     ValidateDevice     (ushort board);
 
-         public:
+     public:
         I2C_INTERFACE_C (void);
         // return:  0 = all good
         //         -1 = Total failure
@@ -129,11 +145,15 @@ namespace ZYNTH_I2C
         bool IsAnalogIn         (short device);
         bool IsAnalogOut        (short device);
         bool IsDigitalOut       (short device);
+        bool IsMem              (short device);
         void D2Analog           (short device, ushort value);
         void DigitalOut         (short device, bool value);
+        void InitialDtoAeeprom  ();
         void StartAtoD          (short device);
         void AnalogClear        (void);
         void Update             (void);
+        void ReadEeprom         (short device, uint8_t* dest);      // Read EEPROM base on the device coding using Index and Size
+        void WriteEeprom        (short device, uint8_t* source);    // Write EEPROM base on the device coding using Index and Size
         void SetDebug           (bool state)
         { _DebugI2C = state; }
 
