@@ -141,6 +141,7 @@ namespace ZYNTH_I2C
         //         +X = Some interface errors
         int  Begin              (I2C_LOCATION_T* plocation, COMPONENT mux, uint64_t clock, int sda = -1, int scl = -1);
         bool IsPortValid        (short device);
+        void SetSlice           (int cluster, int slice);
         void Loop               (void);
         bool IsAnalogIn         (short device);
         bool IsAnalogOut        (short device);

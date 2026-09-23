@@ -680,6 +680,16 @@ int I2C_INTERFACE_C::Begin (I2C_LOCATION_T* p_location, COMPONENT mux, uint64_t 
     }
 
 //#######################################################################
+void I2C_INTERFACE_C::SetSlice (int cluster, int slice)
+    {
+    I2C_LOCATION_T loc;
+
+    loc.Cluster = cluster;
+    loc.Slice   = slice;
+    BusMux (loc);
+    }
+
+//#######################################################################
 bool I2C_INTERFACE_C::IsPortValid (short device)
     {
     if ( device < _DeviceCount && _pDevice[device].pBoard->Valid )
