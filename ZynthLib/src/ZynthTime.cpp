@@ -8,17 +8,11 @@
 #include <ZynthTime.h>
 
 //#######################################################################
-    ZYNTH_TIME_C::ZYNTH_TIME_C ()
+    ZYNTH_TIME_C::ZYNTH_TIME_C () : _RunTime (0), _EndTime (0), _DeltaTimeMicro (0.0f), _DeltaTimeMilli (0.0f),  _DeltaTimeMilliAverage (0.0f),
+                                    _DeltaExecutionAverage (0.0f),  _LongestTimeMilli (0.0f), _FailAlert  (false),  _SkipLongest (1000)
     {
     pinMode      (HEARTBEAT_PIN, OUTPUT);
     digitalWrite (HEARTBEAT_PIN, LOW);      // LED off
-    _RunTime           = 0;
-    _DeltaTimeMicro    = 0.0;
-    _DeltaTimeMilli    = 0.0;
-    _DeltaTimeMilliAverage = 0.0;
-    _LongestTimeMilli  = 0.0;
-    _SkipLongest       = 1000;
-    _FailAlert         = false;
     }
 
 //#######################################################################

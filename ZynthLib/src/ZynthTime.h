@@ -15,8 +15,8 @@
 //#####################################
 //   Alarms and alerts ESP32-WROOM
 //#####################################
-#define HEARTBEAT_PIN       2
-#define BEEP_PIN            15
+//#define HEARTBEAT_PIN       2
+#define HEARTBEAT_PIN       6
 
 //#####################################
 // TIme class
