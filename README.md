@@ -1,4 +1,4 @@
-This is the core function library for Zynthersizer.
+This is the core function library for Zynthysizer.
 
 
 
