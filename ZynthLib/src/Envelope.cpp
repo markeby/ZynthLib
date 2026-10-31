@@ -127,7 +127,7 @@ void ENVELOPE_C::SetTime (ESTATE state, float time)
 void ENVELOPE_C::SetLooper (float time)
     {
     _LoopTime = time;
-    if ( time = 0.0f )
+    if ( time < 0.002f )
         _Looper = false;
     else
         _Looper = true;
