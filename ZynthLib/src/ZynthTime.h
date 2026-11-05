@@ -13,11 +13,6 @@
 #define MILLI_TO_MICRO(x) ((x) * 1000)
 
 //#####################################
-//   Alarms and alerts ESP32-WROOM
-//#####################################
-#define HEARTBEAT_PIN       1
-
-//#####################################
 // TIme class
 //#####################################
 class ZYNTH_TIME_C
@@ -32,10 +27,11 @@ private:
     float       _LongestTimeMilli;          // longest running loop in mSec
     bool        _FailAlert;                 // true to alert failure mode
     int         _SkipLongest;
-
+    uint8_t     _HeartBeatGPIO;             // User assigned GPIO for heartbeat LED
 public:
         ZYNTH_TIME_C ();
 
+    void Begin  (uint8_t gpio_pin);
     void Start ();                   // Time process for loop start
     void End   ();                   // Time process for loop ending
 
@@ -66,8 +62,8 @@ public:
      // return the longest time interval between calls in floating point mSec and reset longest and all averages
     float LongestTime ()
         {
-        float zf = _LongestTimeMilli;
-        _LongestTimeMilli = 0.0f;
+        float zf               = _LongestTimeMilli;
+        _LongestTimeMilli      = 0.0f;
         _DeltaTimeMilliAverage = 0.0f;
         _DeltaExecutionAverage = 0.0f;
 
@@ -82,7 +78,7 @@ public:
     void SkipLongest (int count)
         {
         _LongestTimeMilli = 0.0f;
-        _SkipLongest = count;
+        _SkipLongest      = count;
         }
 
     };

@@ -9,13 +9,10 @@
 
 //#######################################################################
     ZYNTH_TIME_C::ZYNTH_TIME_C () : _RunTime (0), _EndTime (0), _DeltaTimeMicro (0.0f), _DeltaTimeMilli (0.0f),  _DeltaTimeMilliAverage (0.0f),
-                                    _DeltaExecutionAverage (0.0f),  _LongestTimeMilli (0.0f), _FailAlert  (false),  _SkipLongest (1000)
+                                    _DeltaExecutionAverage (0.0f),  _LongestTimeMilli (0.0f), _FailAlert  (false),  _SkipLongest (1000), _HeartBeatGPIO (2)
     {
-    pinMode      (HEARTBEAT_PIN, OUTPUT);
-    digitalWrite (HEARTBEAT_PIN, LOW);      // LED off
     }
 
-//#######################################################################
 //#######################################################################
 void ZYNTH_TIME_C::Start (void)
     {
@@ -54,19 +51,28 @@ void ZYNTH_TIME_C::Start (void)
 
         if ( --counter0 == 0 )
             {
-            digitalWrite (HEARTBEAT_PIN, HIGH);     // LED on
+            digitalWrite (_HeartBeatGPIO, HIGH);     // LED on
             counter0 = 100;
             }
         if ( _FailAlert )
             {
             if ( counter0 % 25 )
-                digitalWrite (HEARTBEAT_PIN, LOW);  // LED off
+                digitalWrite (_HeartBeatGPIO, LOW);  // LED off
             else
-                digitalWrite (HEARTBEAT_PIN, HIGH); // LED on
+                digitalWrite (_HeartBeatGPIO, HIGH); // LED on
             }
         if ( counter0 == 98 )
-            digitalWrite (HEARTBEAT_PIN, LOW);      // LED off
+            digitalWrite (_HeartBeatGPIO, LOW);      // LED off
         }
+    }
+
+//#######################################################################
+void ZYNTH_TIME_C::Begin (uint8_t val)
+    {
+    _HeartBeatGPIO = val;
+
+    pinMode      (_HeartBeatGPIO, OUTPUT);
+    digitalWrite (_HeartBeatGPIO, LOW);      // LED off
     }
 
 //#######################################################################
