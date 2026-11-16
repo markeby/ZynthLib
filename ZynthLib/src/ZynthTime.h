@@ -28,59 +28,105 @@ private:
     bool        _FailAlert;                 // true to alert failure mode
     int         _SkipLongest;
     uint8_t     _HeartBeatGPIO;             // User assigned GPIO for heartbeat LED
+    bool        _HeartBeatOn;               // on state can be high or low depending on application of LED
+
 public:
         ZYNTH_TIME_C ();
 
-    void Begin  (uint8_t gpio_pin);
+    //#######################################################################
+    /*!
+    @brief  Setup heartbeat LED configuration
+    @param  gpio_pin    Processor GPIO pin assigned to heartbeat LED
+    @param  state       Set true for ground referenced LED and false if LED reference to 3.3 ot 5 volts
+    */
+    void Begin  (uint8_t gpio_pin, bool state);
+
+    //#######################################################################
+    /*!
+    @brief  Called at start of standeard loop function to monitor code performance
+    */
     void Start ();                   // Time process for loop start
+
+    //#######################################################################
+    /*!
+    @brief  Called at end of standeard loop function to monitor code performance
+    */
     void End   ();                   // Time process for loop ending
 
-    // return the continues counting clock that starts at zero
+    //#######################################################################
+    /*!
+    @brief      Return the clock counting from beginning of execution
+    @return     Unsigned 64 bit value in miceoseconds.
+    */
     uint64_t TotalRunningTime ()
         {
         return (_RunTime);
         }
 
-    // return the time interval since last call in floating point mSec
+    //#######################################################################
+    /*!
+    @brief      Obtain the time interval since last call
+    @return     Floating point value in milliseconds.
+    */
     float DeltaTimeMS ()
         {
         return (_DeltaTimeMilli);
         }
 
-    // return the average time interval between callx in floating point mSec
+
+    //#######################################################################
+    /*!
+    @brief      Obtain the average time interval between calls
+    @return     Floating point value in milliseconds.
+    */
     float DeltaTimeAvg ()
         {
         return (_DeltaTimeMilliAverage);
         }
 
-    // return the average time interval between callx in floating point mSec
+    //#######################################################################
+    /*!
+    @brief      Obtain the average time interval between calls
+    @return     Floating point value in milliseconds
+    */
     float DeltaTimeExecAvg ()
         {
         return (_DeltaExecutionAverage);
         }
 
-     // return the longest time interval between calls in floating point mSec and reset longest and all averages
+    //#######################################################################
+    /*!
+    @brief      Obtain the longest time interval between calls
+    @return     Floating point value in milliseconds.
+    */
     float LongestTime ()
         {
         float zf               = _LongestTimeMilli;
         _LongestTimeMilli      = 0.0f;
         _DeltaTimeMilliAverage = 0.0f;
         _DeltaExecutionAverage = 0.0f;
-
         return (zf);
         }
 
+    //#######################################################################
+    /*!
+    @brief  Set timer LED to fail flash rate as 2 or more flashes per second
+    */
     void SetFailMode (bool state)
         {
         _FailAlert = state;
         }
 
+    //#######################################################################
+    /*!
+    @brief  Kill the longest time interval and do not calculate for supplied loop iterations
+    @param  count      Set the number of loop iterations to skip before starting longest detection
+    */
     void SkipLongest (int count)
         {
         _LongestTimeMilli = 0.0f;
         _SkipLongest      = count;
         }
-
     };
 
 //#####################################

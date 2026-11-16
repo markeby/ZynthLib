@@ -40,7 +40,6 @@ void ZYNTH_TIME_C::Start (void)
             _LongestTimeMilli = _DeltaTimeMilli;
         }
 
-
     loop_cnt_100hz += _DeltaTimeMicro;
     icount++;
 
@@ -51,28 +50,29 @@ void ZYNTH_TIME_C::Start (void)
 
         if ( --counter0 == 0 )
             {
-            digitalWrite (_HeartBeatGPIO, HIGH);     // LED on
+            digitalWrite (_HeartBeatGPIO, _HeartBeatOn);     // LED on
             counter0 = 100;
             }
         if ( _FailAlert )
             {
             if ( counter0 % 25 )
-                digitalWrite (_HeartBeatGPIO, LOW);  // LED off
+                digitalWrite (_HeartBeatGPIO, !_HeartBeatOn);  // LED off
             else
-                digitalWrite (_HeartBeatGPIO, HIGH); // LED on
+                digitalWrite (_HeartBeatGPIO, _HeartBeatOn); // LED on
             }
         if ( counter0 == 98 )
-            digitalWrite (_HeartBeatGPIO, LOW);      // LED off
+            digitalWrite (_HeartBeatGPIO, !_HeartBeatOn);      // LED off
         }
     }
 
 //#######################################################################
-void ZYNTH_TIME_C::Begin (uint8_t val)
+void ZYNTH_TIME_C::Begin (uint8_t val, bool state)
     {
     _HeartBeatGPIO = val;
+    _HeartBeatOn   = state;
 
-    pinMode      (_HeartBeatGPIO, OUTPUT);
-    digitalWrite (_HeartBeatGPIO, LOW);      // LED off
+    pinMode      (_HeartBeatGPIO, OUTPUT_OPEN_DRAIN);
+    digitalWrite (_HeartBeatGPIO, !_HeartBeatOn);      // LED off
     }
 
 //#######################################################################

@@ -595,7 +595,7 @@ void I2C_INTERFACE_C::WritePageEeprom (I2C_LOCATION_T& loc, uint8_t* source, int
         {
         ERROR ("Result: Write failure %s   port: %#02.2X   EEPROM address: 0x%X", ErrorStringI2C (_LastEndT), loc.Port, paddress);
         }
-    delay (10);              // we should give a little time to complete writing the page
+    delay (30);              // we should give a little time to complete writing the page
     }
 
 //#######################################################################
